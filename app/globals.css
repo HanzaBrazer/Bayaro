@@ -2,21 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --font-sans: 'Plus Jakarta Sans', sans-serif;
-  --font-mono: 'IBM Plex Mono', monospace;
-}
+/*
+  Variabel font --font-sans / --font-mono di-inject oleh next/font (lihat app/layout.tsx)
+  pada elemen <html>, jadi tidak perlu didefinisikan ulang di sini.
+*/
 
 body {
-  color: #1C1A17;
-  background-color: #F7F6F3;
-  font-family: var(--font-sans);
+  font-family: var(--font-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Tabular figures untuk angka monospaced */
+/* Angka tabular (nomor & nominal invoice) memakai mono + figur sejajar */
 .tabular-nums {
-  font-family: var(--font-mono);
+  font-family: var(--font-mono), monospace;
   font-variant-numeric: tabular-nums;
 }

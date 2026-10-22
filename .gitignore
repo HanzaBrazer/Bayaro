@@ -36,3 +36,7 @@ Thumbs.db
 # Vercel & Turbopack
 .vercel
 .turbo
+
+# TypeScript build info
+*.tsbuildinfo
+next-env.d.ts

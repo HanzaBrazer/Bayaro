@@ -29,6 +29,9 @@ export { Table, THead, TBody, TR, TH, TD, TDNumber, SortableTH, Pagination } fro
 export { Badge, StatusBadge } from "./Badge";
 export type { BadgeProps, InvoiceStatus } from "./Badge";
 
+export { Dropdown, DropdownItem, DropdownDivider, DropdownLabel } from "./Dropdown";
+export type { DropdownProps, DropdownItemProps } from "./Dropdown";
+
 export { Modal } from "./Modal";
 export type { ModalProps } from "./Modal";
 

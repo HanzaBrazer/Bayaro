@@ -44,10 +44,10 @@ export default function HomePage() {
         {/* CTA ke halaman status */}
         <div className="flex flex-col items-center justify-center gap-3 pt-2 sm:flex-row">
           <Link
-            href="/health"
+            href="/invoices"
             className="inline-flex w-full items-center justify-center gap-2 rounded-btn bg-primary px-6 py-2.5 font-medium text-surface shadow-sm transition-all hover:bg-primary-hover active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 sm:w-auto"
           >
-            <span>Cek status environment</span>
+            <span>Buka aplikasi</span>
             <ArrowRight className="h-4 w-4" />
           </Link>
           <Link
@@ -57,6 +57,11 @@ export default function HomePage() {
             <span>Component library</span>
           </Link>
         </div>
+        <p className="text-xs text-muted">
+          <Link href="/health" className="underline-offset-2 hover:text-ink hover:underline">
+            Cek status environment
+          </Link>
+        </p>
       </div>
 
       <footer className="mt-8 text-xs text-muted">

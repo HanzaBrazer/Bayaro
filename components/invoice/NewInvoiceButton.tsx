@@ -32,7 +32,7 @@ export function NewInvoiceButton() {
       <PaywallModal
         open={paywall}
         onClose={() => setPaywall(false)}
-        onUpgrade={() => router.push("/settings")}
+        onUpgrade={() => router.push("/settings?tab=billing")}
         used={quota.used}
         limit={quota.limit}
       />

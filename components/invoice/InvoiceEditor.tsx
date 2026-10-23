@@ -344,7 +344,7 @@ export function InvoiceEditor({
         }}
       />
 
-      <PaywallModal open={paywallOpen} onClose={() => setPaywallOpen(false)} onUpgrade={() => router.push("/settings")} />
+      <PaywallModal open={paywallOpen} onClose={() => setPaywallOpen(false)} onUpgrade={() => router.push("/settings?tab=billing")} />
     </div>
   );
 }

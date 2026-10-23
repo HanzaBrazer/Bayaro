@@ -105,6 +105,47 @@ export async function saveOnboardingAction(
   return { error: null, success: true };
 }
 
+/** Simpan profil usaha (Pengaturan > Profil). */
+export async function saveWorkspaceProfile(input: {
+  name: string;
+  address: string;
+  bankAccount: string;
+}): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sesi berakhir. Masuk lagi." };
+  if (!input.name.trim()) return { error: "Nama usaha wajib diisi." };
+  const { error } = await supabase
+    .from("workspaces")
+    .update({
+      name: input.name.trim(),
+      address: input.address.trim() || null,
+      bank_account: input.bankAccount.trim() || null,
+    })
+    .eq("owner_user_id", user.id);
+  return { error: error ? "Gagal menyimpan profil." : null };
+}
+
+/** Simpan penomoran invoice (Pengaturan > Penomoran). */
+export async function saveNumbering(input: {
+  prefix: string;
+  nextNumber: number;
+}): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sesi berakhir. Masuk lagi." };
+  const next = Math.max(1, Math.floor(input.nextNumber || 1));
+  const { error } = await supabase
+    .from("workspaces")
+    .update({ invoice_prefix: input.prefix.trim() || "INV-", next_invoice_number: next })
+    .eq("owner_user_id", user.id);
+  return { error: error ? "Gagal menyimpan penomoran." : null };
+}
+
 /** Jadikan template default workspace (dipakai untuk invoice baru). */
 export async function setDefaultTemplate(templateId: string): Promise<{ error: string | null }> {
   const supabase = await createClient();

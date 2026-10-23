@@ -7,17 +7,26 @@ export interface JasaTemplateProps {
   workspace: WorkspaceInfo;
   values: InvoiceFormValues;
   totals: InvoiceTotals;
+  /** Watermark halus untuk plan Free (placeholder; logika plan di Langkah 9). */
+  watermark?: boolean;
 }
 
 /**
  * Template invoice "Jasa" — satu sumber untuk live preview & (nanti) PDF/PNG/link publik.
  * Nomor & nominal memakai IBM Plex Mono (font-mono) dengan figur tabular.
  */
-export function JasaTemplate({ workspace, values, totals }: JasaTemplateProps) {
+export function JasaTemplate({ workspace, values, totals, watermark }: JasaTemplateProps) {
   const rows = values.items.filter((i) => i.description.trim() || i.unit_price > 0 || i.quantity > 0);
 
   return (
-    <div className="mx-auto w-full max-w-[794px] bg-white p-8 text-ink md:p-10" style={{ fontSize: 13, lineHeight: 1.5 }}>
+    <div id="invoice-doc" className="relative mx-auto w-full max-w-[794px] overflow-hidden bg-white p-8 text-ink md:p-10" style={{ fontSize: 13, lineHeight: 1.5 }}>
+      {watermark && (
+        <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <span className="rotate-[-30deg] select-none text-[90px] font-extrabold uppercase tracking-widest text-ink/[0.05]">
+            Bayaro
+          </span>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-start justify-between gap-6 border-b border-line pb-6">
         <div className="flex items-center gap-3">

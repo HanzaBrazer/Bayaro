@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, FileText, Eye } from "lucide-react";
+import { Plus, Trash2, FileText, Eye, ChevronDown, Download, Image as ImageIcon, Link2 } from "lucide-react";
 import {
   Input,
   CurrencyInput,
@@ -13,6 +13,7 @@ import {
   IconButton,
   Modal,
   Card,
+  Dropdown,
   useToast,
 } from "@/components/ui";
 import { cn } from "@/lib/utils";
@@ -58,11 +59,13 @@ export function InvoiceEditor({
   initialValues,
   mode,
   invoiceId,
+  publicToken,
 }: {
   workspace: WorkspaceInfo;
   initialValues: InvoiceFormValues;
   mode: "new" | "edit";
   invoiceId?: string;
+  publicToken?: string | null;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -229,6 +232,43 @@ export function InvoiceEditor({
 
           {/* Actions */}
           <div className="sticky bottom-0 flex flex-wrap items-center justify-end gap-2 rounded-card border border-line bg-surface/90 p-3 shadow-card backdrop-blur">
+            {publicToken && (
+              <div className="mr-auto">
+                <Dropdown
+                  align="left"
+                  trigger={({ open, toggle }) => (
+                    <Button variant="secondary" onClick={toggle} rightIcon={<ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} />}>
+                      Export
+                    </Button>
+                  )}
+                >
+                  {(close) => {
+                    const item = "flex w-full items-center gap-2.5 rounded-btn px-2.5 py-2 text-left text-sm text-ink transition-colors hover:bg-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
+                    return (
+                      <>
+                        <a href={`/api/i/${publicToken}/pdf`} target="_blank" rel="noopener" onClick={close} className={item}>
+                          <Download className="h-4 w-4" /> Unduh PDF
+                        </a>
+                        <a href={`/api/i/${publicToken}/png`} target="_blank" rel="noopener" onClick={close} className={item}>
+                          <ImageIcon className="h-4 w-4" /> Unduh PNG
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard?.writeText(`${window.location.origin}/i/${publicToken}`);
+                            toast.success("Link disalin", "URL publik disalin ke clipboard.");
+                            close();
+                          }}
+                          className={item}
+                        >
+                          <Link2 className="h-4 w-4" /> Salin link
+                        </button>
+                      </>
+                    );
+                  }}
+                </Dropdown>
+              </div>
+            )}
             <Button variant="ghost" onClick={handleCancel} disabled={saving !== null}>Batal</Button>
             <Button variant="secondary" onClick={() => save(true)} loading={saving === "draft"} disabled={saving === "final"}>Simpan draft</Button>
             <Button onClick={() => save(false)} loading={saving === "final"} disabled={saving === "draft"}>Simpan</Button>

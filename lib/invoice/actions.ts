@@ -152,6 +152,7 @@ export async function updateInvoice(
 
 export interface InvoiceForEdit {
   id: string;
+  publicToken: string | null;
   values: InvoiceFormValues;
   workspace: WorkspaceInfo;
 }
@@ -189,5 +190,5 @@ export async function getInvoiceForEdit(id: string): Promise<InvoiceForEdit | nu
     templateId: inv.template_id ?? "jasa",
   };
 
-  return { id: inv.id as string, values, workspace: ws };
+  return { id: inv.id as string, publicToken: (inv.public_token as string) ?? null, values, workspace: ws };
 }

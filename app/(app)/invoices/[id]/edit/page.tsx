@@ -12,7 +12,7 @@ export default async function EditInvoicePage({ params }: { params: Promise<{ id
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-semibold text-ink">Edit invoice</h2>
-      <InvoiceEditor workspace={data.workspace} initialValues={data.values} mode="edit" invoiceId={data.id} />
+      <InvoiceEditor workspace={data.workspace} initialValues={data.values} mode="edit" invoiceId={data.id} publicToken={data.publicToken} />
     </div>
   );
 }

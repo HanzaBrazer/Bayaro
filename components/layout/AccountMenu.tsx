@@ -2,6 +2,7 @@
 
 import { ChevronDown, User, CreditCard, HelpCircle, LogOut } from "lucide-react";
 import { Dropdown, DropdownItem, DropdownDivider, useToast } from "@/components/ui";
+import { signOutAction } from "@/lib/auth/actions";
 
 export function AccountMenu() {
   const toast = useToast();
@@ -49,9 +50,17 @@ export function AccountMenu() {
             Bantuan
           </DropdownItem>
           <DropdownDivider />
-          <DropdownItem href="/login" danger icon={<LogOut className="h-4 w-4" />} onClick={close}>
-            Keluar
-          </DropdownItem>
+          <form action={signOutAction}>
+            <button
+              type="submit"
+              role="menuitem"
+              onClick={close}
+              className="flex w-full items-center gap-2.5 rounded-btn px-2.5 py-2 text-left text-sm text-danger transition-colors hover:bg-danger-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              <LogOut className="h-4 w-4" />
+              Keluar
+            </button>
+          </form>
         </>
       )}
     </Dropdown>

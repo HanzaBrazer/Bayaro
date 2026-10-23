@@ -54,7 +54,6 @@ export function AccountMenu() {
             <button
               type="submit"
               role="menuitem"
-              onClick={close}
               className="flex w-full items-center gap-2.5 rounded-btn px-2.5 py-2 text-left text-sm text-danger transition-colors hover:bg-danger-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <LogOut className="h-4 w-4" />

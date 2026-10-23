@@ -31,6 +31,7 @@ export default async function PublicInvoicePage({
 
   const afterDiscount = Number(inv.subtotal) - Number(inv.discount);
   const values: InvoiceFormValues = {
+    clientId: inv.client_id ?? null,
     clientName: inv.client_name ?? "",
     clientAddress: inv.client_address ?? "",
     number: inv.number ?? "",

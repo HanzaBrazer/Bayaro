@@ -72,7 +72,7 @@ export async function createInvoice(values: InvoiceFormValues, asDraft: boolean)
     .insert({
       workspace_id: ws.id,
       user_id: user.id,
-      client_id: null,
+      client_id: values.clientId || null,
       client_name: values.clientName.trim() || null,
       client_address: values.clientAddress.trim() || null,
       number,
@@ -121,6 +121,7 @@ export async function updateInvoice(
   const { error } = await supabase
     .from("invoices")
     .update({
+      client_id: values.clientId || null,
       client_name: values.clientName.trim() || null,
       client_address: values.clientAddress.trim() || null,
       number: values.number.trim(),
@@ -208,6 +209,7 @@ export async function getInvoiceForEdit(id: string): Promise<InvoiceForEdit | nu
     .order("position", { ascending: true });
 
   const values: InvoiceFormValues = {
+    clientId: inv.client_id ?? null,
     clientName: inv.client_name ?? "",
     clientAddress: inv.client_address ?? "",
     number: inv.number ?? "",

@@ -1,12 +1,9 @@
-import { Users } from "lucide-react";
-import { PagePlaceholder } from "@/components/layout/PagePlaceholder";
+import { getClients } from "@/lib/client/actions";
+import { ClientList } from "@/components/client/ClientList";
 
-export default function ClientsPage() {
-  return (
-    <PagePlaceholder
-      icon={<Users className="h-6 w-6" />}
-      title="Klien"
-      description="Daftar klien tersimpan dan form tambah klien dibangun di Langkah 7."
-    />
-  );
+export const dynamic = "force-dynamic";
+
+export default async function ClientsPage() {
+  const clients = await getClients();
+  return <ClientList clients={clients} />;
 }

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getMyWorkspace } from "@/lib/workspace/actions";
+import { getClients } from "@/lib/client/actions";
 import { InvoiceEditor } from "@/components/invoice/InvoiceEditor";
 import type { InvoiceFormValues } from "@/lib/invoice/types";
 
@@ -18,9 +19,11 @@ export default async function NewInvoicePage() {
   const ws = await getMyWorkspace();
   if (!ws) redirect("/onboarding");
 
+  const clients = await getClients();
   const suggestion = `${ws.invoice_prefix ?? "INV-"}${String(ws.next_invoice_number ?? 1).padStart(4, "0")}`;
 
   const initialValues: InvoiceFormValues = {
+    clientId: null,
     clientName: "",
     clientAddress: "",
     number: suggestion,
@@ -36,7 +39,7 @@ export default async function NewInvoicePage() {
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-semibold text-ink">Invoice baru</h2>
-      <InvoiceEditor workspace={ws} initialValues={initialValues} mode="new" />
+      <InvoiceEditor workspace={ws} initialValues={initialValues} mode="new" clients={clients} />
     </div>
   );
 }

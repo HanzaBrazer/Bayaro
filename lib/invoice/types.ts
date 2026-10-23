@@ -10,6 +10,7 @@ export interface InvoiceItemInput {
 }
 
 export interface InvoiceFormValues {
+  clientId: string | null;
   clientName: string;
   clientAddress: string;
   number: string;

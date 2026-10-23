@@ -29,6 +29,8 @@ import {
 } from "@/lib/invoice/types";
 import { formatRupiah } from "@/lib/utils";
 import { JasaTemplate } from "./templates/JasaTemplate";
+import { ClientDrawer } from "@/components/client/ClientDrawer";
+import type { ClientRecord } from "@/lib/client/actions";
 
 const CATEGORY_OPTIONS = (Object.keys(CATEGORY_LABEL) as ItemCategory[]).map((c) => ({
   value: c,
@@ -60,12 +62,14 @@ export function InvoiceEditor({
   mode,
   invoiceId,
   publicToken,
+  clients,
 }: {
   workspace: WorkspaceInfo;
   initialValues: InvoiceFormValues;
   mode: "new" | "edit";
   invoiceId?: string;
   publicToken?: string | null;
+  clients: ClientRecord[];
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -74,6 +78,15 @@ export function InvoiceEditor({
   const [saving, setSaving] = React.useState<null | "draft" | "final">(null);
   const [cancelOpen, setCancelOpen] = React.useState(false);
   const [tab, setTab] = React.useState<"form" | "preview">("form");
+  const [clientList, setClientList] = React.useState<ClientRecord[]>(clients);
+  const [clientDrawerOpen, setClientDrawerOpen] = React.useState(false);
+
+  const clientOptions = React.useMemo(() => clientList.map((c) => ({ value: c.id, label: c.name })), [clientList]);
+
+  function selectClient(id: string) {
+    const c = clientList.find((x) => x.id === id);
+    if (c) patch({ clientId: c.id, clientName: c.name, clientAddress: c.address ?? "" });
+  }
 
   const totals = React.useMemo(
     () => computeTotals(values.items, values.taxPercent, values.discount),
@@ -157,8 +170,21 @@ export function InvoiceEditor({
                 helper="Otomatis berurutan; bisa diubah."
               />
             </div>
-            <Input label="Nama klien" value={values.clientName} onChange={(e) => patch({ clientName: e.target.value })} placeholder="mis. PT Maju Jaya" />
-            <Textarea label="Alamat klien" value={values.clientAddress} onChange={(e) => patch({ clientAddress: e.target.value })} rows={2} placeholder="Alamat penerima invoice" />
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-[13px] font-medium text-ink">Klien</label>
+                <button type="button" onClick={() => setClientDrawerOpen(true)} className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary-hover focus-visible:outline-none focus-visible:underline">
+                  <Plus className="h-3.5 w-3.5" /> Klien baru
+                </button>
+              </div>
+              <Select options={clientOptions} value={values.clientId} onChange={selectClient} placeholder="Pilih klien…" />
+              {!values.clientId && values.clientName && (
+                <p className="text-xs text-muted">Klien saat ini: <span className="text-ink">{values.clientName}</span> — pilih/buat untuk menautkan.</p>
+              )}
+              {clientList.length === 0 && (
+                <p className="text-xs text-muted">Belum ada klien. Klik “Klien baru”.</p>
+              )}
+            </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <DatePicker label="Tanggal terbit" value={toDate(values.issueDate)} onChange={(d) => patch({ issueDate: fromDate(d) })} />
               <DatePicker
@@ -298,6 +324,15 @@ export function InvoiceEditor({
             <Button variant="primary" className="bg-danger hover:bg-danger/90" onClick={() => router.push("/invoices")}>Ya, batalkan</Button>
           </>
         }
+      />
+
+      <ClientDrawer
+        open={clientDrawerOpen}
+        onClose={() => setClientDrawerOpen(false)}
+        onSaved={(c) => {
+          setClientList((prev) => [...prev.filter((x) => x.id !== c.id), c].sort((a, b) => a.name.localeCompare(b.name)));
+          patch({ clientId: c.id, clientName: c.name, clientAddress: c.address ?? "" });
+        }}
       />
     </div>
   );

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { JasaTemplate } from "@/components/invoice/templates/JasaTemplate";
+import { getTemplate } from "@/components/invoice/templates/registry";
 import { PublicInvoiceActions } from "@/components/invoice/PublicInvoiceActions";
 import type { InvoiceFormValues, WorkspaceInfo, ItemCategory } from "@/lib/invoice/types";
 import type { InvoiceTotals } from "@/lib/invoice/calc";
@@ -59,11 +59,12 @@ export default async function PublicInvoicePage({
 
   // Watermark untuk plan Free (placeholder true; logika plan asli di Langkah 9).
   const watermark = true;
+  const Template = getTemplate(values.templateId).component;
 
   if (isPrint) {
     return (
       <div className="bg-white">
-        <JasaTemplate workspace={workspace} values={values} totals={totals} watermark={watermark} />
+        <Template workspace={workspace} values={values} totals={totals} watermark={watermark} />
       </div>
     );
   }
@@ -73,7 +74,7 @@ export default async function PublicInvoicePage({
       <div className="mx-auto max-w-[840px] px-4">
         <PublicInvoiceActions token={token} number={values.number} />
         <div className="mt-4 overflow-hidden rounded-card border border-line shadow-card">
-          <JasaTemplate workspace={workspace} values={values} totals={totals} watermark={watermark} />
+          <Template workspace={workspace} values={values} totals={totals} watermark={watermark} />
         </div>
         <p className="mt-6 text-center text-xs text-muted">Dibuat dengan Bayaro</p>
       </div>

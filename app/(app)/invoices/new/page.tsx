@@ -33,7 +33,7 @@ export default async function NewInvoicePage() {
     taxPercent: 11,
     discount: 0,
     notes: "",
-    templateId: "jasa",
+    templateId: ws.default_template_id ?? "jasa",
   };
 
   return (

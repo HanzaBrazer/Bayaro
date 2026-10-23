@@ -28,7 +28,7 @@ import {
   type WorkspaceInfo,
 } from "@/lib/invoice/types";
 import { formatRupiah } from "@/lib/utils";
-import { JasaTemplate } from "./templates/JasaTemplate";
+import { getTemplate, TEMPLATES } from "./templates/registry";
 import { ClientDrawer } from "@/components/client/ClientDrawer";
 import type { ClientRecord } from "@/lib/client/actions";
 
@@ -38,7 +38,7 @@ const CATEGORY_OPTIONS = (Object.keys(CATEGORY_LABEL) as ItemCategory[]).map((c)
   colorDot: CATEGORY_COLOR[c],
 }));
 
-const TEMPLATE_OPTIONS = [{ value: "jasa", label: "Jasa" }];
+const TEMPLATE_OPTIONS = TEMPLATES.map((t) => ({ value: t.id, label: t.name }));
 
 function toDate(s: string | null): Date | null {
   if (!s) return null;
@@ -306,7 +306,10 @@ export function InvoiceEditor({
         <div className={cn("lg:sticky lg:top-20", tab !== "preview" && "hidden lg:block")}>
           <div className="overflow-hidden rounded-card border border-line bg-canvas p-3 shadow-card">
             <div className="max-h-[calc(100vh-7rem)] overflow-auto">
-              <JasaTemplate workspace={workspace} values={values} totals={totals} />
+              {(() => {
+                const PreviewTemplate = getTemplate(values.templateId).component;
+                return <PreviewTemplate workspace={workspace} values={values} totals={totals} />;
+              })()}
             </div>
           </div>
         </div>

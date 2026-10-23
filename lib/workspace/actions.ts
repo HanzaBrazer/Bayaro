@@ -105,6 +105,20 @@ export async function saveOnboardingAction(
   return { error: null, success: true };
 }
 
+/** Jadikan template default workspace (dipakai untuk invoice baru). */
+export async function setDefaultTemplate(templateId: string): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sesi berakhir. Masuk lagi." };
+  const { error } = await supabase
+    .from("workspaces")
+    .update({ default_template_id: templateId })
+    .eq("owner_user_id", user.id);
+  return { error: error ? "Gagal mengubah template default." : null };
+}
+
 /** Lewati onboarding: tandai sudah onboarding, lalu ke /invoices. */
 export async function skipOnboardingAction(): Promise<void> {
   const supabase = await createClient();

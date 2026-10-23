@@ -58,11 +58,11 @@ const PAGE_SIZE = 10;
 
 type SortKey = "issue_date" | "total" | "number";
 
-export function InvoiceList({ invoices }: { invoices: InvoiceRow[] }) {
+export function InvoiceList({ invoices, initialStatus = "all" }: { invoices: InvoiceRow[]; initialStatus?: string }) {
   const router = useRouter();
   const toast = useToast();
   const [query, setQuery] = React.useState("");
-  const [status, setStatus] = React.useState("all");
+  const [status, setStatus] = React.useState(initialStatus);
   const [datePreset, setDatePreset] = React.useState("all");
   const [sort, setSort] = React.useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "issue_date", dir: "desc" });
   const [page, setPage] = React.useState(1);

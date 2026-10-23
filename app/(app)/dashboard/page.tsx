@@ -1,12 +1,9 @@
-import { LayoutGrid } from "lucide-react";
-import { PagePlaceholder } from "@/components/layout/PagePlaceholder";
+import { getDashboardData } from "@/lib/dashboard/actions";
+import { DashboardView } from "@/components/dashboard/DashboardView";
 
-export default function DashboardPage() {
-  return (
-    <PagePlaceholder
-      icon={<LayoutGrid className="h-6 w-6" />}
-      title="Dashboard"
-      description="Ringkasan statistik, chart nilai invoice, dan rincian kategori dibangun di Langkah 11."
-    />
-  );
+export const dynamic = "force-dynamic";
+
+export default async function DashboardPage() {
+  const data = await getDashboardData();
+  return <DashboardView data={data} />;
 }

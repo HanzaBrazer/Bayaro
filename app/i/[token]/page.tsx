@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getPlanFor } from "@/lib/plan/quota";
 import { getTemplate } from "@/components/invoice/templates/registry";
 import { PublicInvoiceActions } from "@/components/invoice/PublicInvoiceActions";
 import type { InvoiceFormValues, WorkspaceInfo, ItemCategory } from "@/lib/invoice/types";
@@ -57,8 +58,9 @@ export default async function PublicInvoicePage({
   };
   const workspace = (ws ?? {}) as WorkspaceInfo;
 
-  // Watermark untuk plan Free (placeholder true; logika plan asli di Langkah 9).
-  const watermark = true;
+  // Watermark hanya untuk pemilik invoice ber-plan Free; Pro tanpa watermark.
+  const ownerPlan = await getPlanFor(admin, inv.user_id as string);
+  const watermark = ownerPlan === "free";
   const Template = getTemplate(values.templateId).component;
 
   if (isPrint) {

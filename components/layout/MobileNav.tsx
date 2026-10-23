@@ -10,8 +10,9 @@ import { NAV_ITEMS, isActivePath } from "@/lib/nav";
 import { BayaroMark } from "@/components/brand/Logo";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { UpgradeCard } from "./UpgradeCard";
+import type { QuotaStatus } from "@/lib/plan/quota";
 
-export function MobileNav() {
+export function MobileNav({ quota }: { quota?: QuotaStatus }) {
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
   const [mounted, setMounted] = React.useState(false);
@@ -118,7 +119,7 @@ export function MobileNav() {
               </nav>
 
               <div className="p-3">
-                <UpgradeCard />
+                <UpgradeCard quota={quota} />
               </div>
             </div>
           </div>,

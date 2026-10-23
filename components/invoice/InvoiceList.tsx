@@ -4,7 +4,6 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  Plus,
   Search,
   MoreHorizontal,
   Eye,
@@ -40,6 +39,7 @@ import {
 } from "@/components/ui";
 import { cn, formatRupiah, formatDateID } from "@/lib/utils";
 import { updateInvoiceStatus, deleteInvoice, type InvoiceRow } from "@/lib/invoice/actions";
+import { NewInvoiceButton } from "./NewInvoiceButton";
 
 const STATUSES: { value: InvoiceStatus; label: string }[] = [
   { value: "draft", label: "Draft" },
@@ -139,14 +139,7 @@ export function InvoiceList({ invoices }: { invoices: InvoiceRow[] }) {
           icon={<FileText className="h-6 w-6" />}
           title="Belum ada invoice"
           description="Buat invoice pertamamu untuk mulai menagih klien."
-          action={
-            <Link
-              href="/invoices/new"
-              className="inline-flex h-10 items-center gap-2 rounded-btn bg-primary px-4 text-sm font-medium text-surface shadow-sm transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-            >
-              <Plus className="h-4 w-4" /> Invoice Baru
-            </Link>
-          }
+          action={<NewInvoiceButton />}
         />
       </Card>
     );
@@ -168,12 +161,7 @@ export function InvoiceList({ invoices }: { invoices: InvoiceRow[] }) {
             <Select options={DATE_FILTER} value={datePreset} onChange={setDatePreset} />
           </div>
         </div>
-        <Link
-          href="/invoices/new"
-          className="inline-flex h-10 shrink-0 items-center gap-2 rounded-btn bg-primary px-4 text-sm font-medium text-surface shadow-sm transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-        >
-          <Plus className="h-4 w-4" /> Invoice Baru
-        </Link>
+        <NewInvoiceButton />
       </div>
 
       <Card className="overflow-hidden">

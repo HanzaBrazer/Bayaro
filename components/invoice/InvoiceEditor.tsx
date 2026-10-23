@@ -14,6 +14,7 @@ import {
   Modal,
   Card,
   Dropdown,
+  PaywallModal,
   useToast,
 } from "@/components/ui";
 import { cn } from "@/lib/utils";
@@ -77,6 +78,7 @@ export function InvoiceEditor({
   const [dirty, setDirty] = React.useState(false);
   const [saving, setSaving] = React.useState<null | "draft" | "final">(null);
   const [cancelOpen, setCancelOpen] = React.useState(false);
+  const [paywallOpen, setPaywallOpen] = React.useState(false);
   const [tab, setTab] = React.useState<"form" | "preview">("form");
   const [clientList, setClientList] = React.useState<ClientRecord[]>(clients);
   const [clientDrawerOpen, setClientDrawerOpen] = React.useState(false);
@@ -117,6 +119,10 @@ export function InvoiceEditor({
       : await createInvoice(values, asDraft);
     setSaving(null);
     if (res.error) {
+      if (res.quota) {
+        setPaywallOpen(true);
+        return;
+      }
       toast.error("Gagal menyimpan", res.error);
       return;
     }
@@ -337,6 +343,8 @@ export function InvoiceEditor({
           patch({ clientId: c.id, clientName: c.name, clientAddress: c.address ?? "" });
         }}
       />
+
+      <PaywallModal open={paywallOpen} onClose={() => setPaywallOpen(false)} onUpgrade={() => router.push("/settings")} />
     </div>
   );
 }

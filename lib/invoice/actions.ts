@@ -2,9 +2,10 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { computeTotals, lineTotal } from "./calc";
+import { getPlanFor, countTodayInvoices, FREE_DAILY_LIMIT } from "@/lib/plan/quota";
 import type { InvoiceFormValues, WorkspaceInfo, ItemCategory, InvoiceItemInput } from "./types";
 
-export type SaveResult = { error: string | null; id?: string };
+export type SaveResult = { error: string | null; id?: string; quota?: boolean };
 
 function validate(values: InvoiceFormValues): string | null {
   if (!values.clientName.trim()) return "Nama klien wajib diisi.";
@@ -54,6 +55,15 @@ export async function createInvoice(values: InvoiceFormValues, asDraft: boolean)
   const ctx = await context();
   if ("error" in ctx) return { error: ctx.error ?? "Terjadi kesalahan." };
   const { supabase, user, ws } = ctx;
+
+  // Kuota harian (server-side, otoritatif): Free = 10/hari, Pro = tanpa batas.
+  const plan = await getPlanFor(supabase, user.id);
+  if (plan === "free") {
+    const usedToday = await countTodayInvoices(supabase, user.id);
+    if (usedToday >= FREE_DAILY_LIMIT) {
+      return { error: `Kuota harian Free habis (${usedToday}/${FREE_DAILY_LIMIT}).`, quota: true };
+    }
+  }
 
   // Tentukan nomor: auto (RPC atomik) bila sama dgn saran, atau manual.
   const suggestion = `${ws.invoice_prefix ?? "INV-"}${String(ws.next_invoice_number ?? 1).padStart(4, "0")}`;

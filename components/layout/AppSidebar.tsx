@@ -7,12 +7,13 @@ import { NAV_ITEMS, isActivePath } from "@/lib/nav";
 import { BayaroMark } from "@/components/brand/Logo";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { UpgradeCard } from "./UpgradeCard";
+import type { QuotaStatus } from "@/lib/plan/quota";
 
 /**
  * Sidebar desktop (248px) / tablet collapse (72px ikon-only).
  * Mobile memakai MobileNav (drawer) di topbar.
  */
-export function AppSidebar() {
+export function AppSidebar({ quota }: { quota?: QuotaStatus }) {
   const pathname = usePathname();
 
   return (
@@ -71,10 +72,10 @@ export function AppSidebar() {
       {/* Upgrade card */}
       <div className="p-2 lg:p-3">
         <div className="hidden lg:block">
-          <UpgradeCard />
+          <UpgradeCard quota={quota} />
         </div>
         <div className="flex justify-center lg:hidden">
-          <UpgradeCard collapsed />
+          <UpgradeCard collapsed quota={quota} />
         </div>
       </div>
     </aside>

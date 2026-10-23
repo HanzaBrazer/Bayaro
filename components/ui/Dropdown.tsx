@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -10,17 +11,34 @@ export interface DropdownProps {
   align?: "left" | "right";
   panelClassName?: string;
   className?: string;
+  /** Render panel ke portal (fixed) agar lolos dari kontainer overflow (mis. tabel). */
+  portal?: boolean;
 }
 
-export function Dropdown({ trigger, children, align = "left", panelClassName, className }: DropdownProps) {
+export function Dropdown({ trigger, children, align = "left", panelClassName, className, portal = false }: DropdownProps) {
   const [open, setOpen] = React.useState(false);
+  const [mounted, setMounted] = React.useState(false);
+  const [coords, setCoords] = React.useState<{ top: number; left?: number; right?: number }>({ top: 0 });
   const rootRef = React.useRef<HTMLDivElement>(null);
+  const panelRef = React.useRef<HTMLDivElement>(null);
   const close = React.useCallback(() => setOpen(false), []);
+
+  React.useEffect(() => setMounted(true), []);
 
   React.useEffect(() => {
     if (!open) return;
+    if (portal && rootRef.current) {
+      const r = rootRef.current.getBoundingClientRect();
+      setCoords(
+        align === "right"
+          ? { top: r.bottom + 4, right: window.innerWidth - r.right }
+          : { top: r.bottom + 4, left: r.left }
+      );
+    }
     const onDown = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) close();
+      const t = e.target as Node;
+      if (rootRef.current?.contains(t) || panelRef.current?.contains(t)) return;
+      close();
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") close();
@@ -31,23 +49,29 @@ export function Dropdown({ trigger, children, align = "left", panelClassName, cl
       document.removeEventListener("mousedown", onDown);
       window.removeEventListener("keydown", onKey);
     };
-  }, [open, close]);
+  }, [open, close, portal, align]);
+
+  const panel = (
+    <div
+      ref={panelRef}
+      role="menu"
+      style={portal ? { position: "fixed", top: coords.top, left: coords.left, right: coords.right } : undefined}
+      className={cn(
+        "z-50 min-w-[12rem] rounded-card border border-line bg-surface p-1 shadow-dropdown",
+        !portal && "absolute mt-2 z-40",
+        !portal && (align === "right" ? "right-0" : "left-0"),
+        portal && "max-h-[70vh] overflow-auto",
+        panelClassName
+      )}
+    >
+      {typeof children === "function" ? children(close) : children}
+    </div>
+  );
 
   return (
     <div ref={rootRef} className={cn("relative", className)}>
       {trigger({ open, toggle: () => setOpen((o) => !o) })}
-      {open && (
-        <div
-          role="menu"
-          className={cn(
-            "absolute z-40 mt-2 min-w-[12rem] rounded-card border border-line bg-surface p-1 shadow-dropdown",
-            align === "right" ? "right-0" : "left-0",
-            panelClassName
-          )}
-        >
-          {typeof children === "function" ? children(close) : children}
-        </div>
-      )}
+      {open && (portal ? mounted && createPortal(panel, document.body) : panel)}
     </div>
   );
 }

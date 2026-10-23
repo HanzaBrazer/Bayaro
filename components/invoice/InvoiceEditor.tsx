@@ -235,6 +235,7 @@ export function InvoiceEditor({
             {publicToken && (
               <div className="mr-auto">
                 <Dropdown
+                  portal
                   align="left"
                   trigger={({ open, toggle }) => (
                     <Button variant="secondary" onClick={toggle} rightIcon={<ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} />}>

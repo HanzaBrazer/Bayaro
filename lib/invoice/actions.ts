@@ -150,6 +150,42 @@ export async function updateInvoice(
   return { error: null, id };
 }
 
+export interface InvoiceRow {
+  id: string;
+  number: string;
+  client_name: string | null;
+  issue_date: string;
+  total: number;
+  status: string;
+  public_token: string | null;
+}
+
+export async function getInvoices(): Promise<InvoiceRow[]> {
+  const ctx = await context();
+  if ("error" in ctx) return [];
+  const { supabase, ws } = ctx;
+  const { data } = await supabase
+    .from("invoices")
+    .select("id,number,client_name,issue_date,total,status,public_token")
+    .eq("workspace_id", ws.id)
+    .order("created_at", { ascending: false });
+  return (data ?? []) as InvoiceRow[];
+}
+
+export async function updateInvoiceStatus(id: string, status: string): Promise<{ error: string | null }> {
+  const ctx = await context();
+  if ("error" in ctx) return { error: ctx.error ?? "Terjadi kesalahan." };
+  const { error } = await ctx.supabase.from("invoices").update({ status }).eq("id", id);
+  return { error: error ? "Gagal mengubah status." : null };
+}
+
+export async function deleteInvoice(id: string): Promise<{ error: string | null }> {
+  const ctx = await context();
+  if ("error" in ctx) return { error: ctx.error ?? "Terjadi kesalahan." };
+  const { error } = await ctx.supabase.from("invoices").delete().eq("id", id);
+  return { error: error ? "Gagal menghapus invoice." : null };
+}
+
 export interface InvoiceForEdit {
   id: string;
   publicToken: string | null;

@@ -1,0 +1,263 @@
+"use client";
+
+import * as React from "react";
+import { useRouter } from "next/navigation";
+import { Plus, Trash2, FileText, Eye } from "lucide-react";
+import {
+  Input,
+  CurrencyInput,
+  Textarea,
+  Select,
+  DatePicker,
+  Button,
+  IconButton,
+  Modal,
+  Card,
+  useToast,
+} from "@/components/ui";
+import { cn } from "@/lib/utils";
+import { computeTotals, lineTotal } from "@/lib/invoice/calc";
+import { createInvoice, updateInvoice } from "@/lib/invoice/actions";
+import {
+  CATEGORY_LABEL,
+  CATEGORY_COLOR,
+  type InvoiceFormValues,
+  type InvoiceItemInput,
+  type ItemCategory,
+  type WorkspaceInfo,
+} from "@/lib/invoice/types";
+import { formatRupiah } from "@/lib/utils";
+import { JasaTemplate } from "./templates/JasaTemplate";
+
+const CATEGORY_OPTIONS = (Object.keys(CATEGORY_LABEL) as ItemCategory[]).map((c) => ({
+  value: c,
+  label: CATEGORY_LABEL[c],
+  colorDot: CATEGORY_COLOR[c],
+}));
+
+const TEMPLATE_OPTIONS = [{ value: "jasa", label: "Jasa" }];
+
+function toDate(s: string | null): Date | null {
+  if (!s) return null;
+  const [y, m, d] = s.split("-").map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+}
+function fromDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+function newItem(): InvoiceItemInput {
+  return { key: crypto.randomUUID(), description: "", quantity: 1, unit_price: 0, category: "jasa" };
+}
+
+export function InvoiceEditor({
+  workspace,
+  initialValues,
+  mode,
+  invoiceId,
+}: {
+  workspace: WorkspaceInfo;
+  initialValues: InvoiceFormValues;
+  mode: "new" | "edit";
+  invoiceId?: string;
+}) {
+  const router = useRouter();
+  const toast = useToast();
+  const [values, setValues] = React.useState<InvoiceFormValues>(initialValues);
+  const [dirty, setDirty] = React.useState(false);
+  const [saving, setSaving] = React.useState<null | "draft" | "final">(null);
+  const [cancelOpen, setCancelOpen] = React.useState(false);
+  const [tab, setTab] = React.useState<"form" | "preview">("form");
+
+  const totals = React.useMemo(
+    () => computeTotals(values.items, values.taxPercent, values.discount),
+    [values.items, values.taxPercent, values.discount]
+  );
+
+  function patch(p: Partial<InvoiceFormValues>) {
+    setValues((v) => ({ ...v, ...p }));
+    setDirty(true);
+  }
+  function patchItem(key: string, p: Partial<InvoiceItemInput>) {
+    setValues((v) => ({ ...v, items: v.items.map((it) => (it.key === key ? { ...it, ...p } : it)) }));
+    setDirty(true);
+  }
+  function addItem() {
+    setValues((v) => ({ ...v, items: [...v.items, newItem()] }));
+    setDirty(true);
+  }
+  function removeItem(key: string) {
+    setValues((v) => ({ ...v, items: v.items.filter((it) => it.key !== key) }));
+    setDirty(true);
+  }
+
+  async function save(asDraft: boolean) {
+    setSaving(asDraft ? "draft" : "final");
+    const res = mode === "edit" && invoiceId
+      ? await updateInvoice(invoiceId, values, asDraft)
+      : await createInvoice(values, asDraft);
+    setSaving(null);
+    if (res.error) {
+      toast.error("Gagal menyimpan", res.error);
+      return;
+    }
+    setDirty(false);
+    toast.success(asDraft ? "Draft tersimpan" : "Invoice tersimpan");
+    router.push("/invoices");
+    router.refresh();
+  }
+
+  function handleCancel() {
+    if (dirty) setCancelOpen(true);
+    else router.push("/invoices");
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Tabs (mobile/tablet) */}
+      <div className="flex gap-1 rounded-btn border border-line bg-surface p-1 lg:hidden">
+        <button
+          type="button"
+          onClick={() => setTab("form")}
+          className={cn(
+            "flex flex-1 items-center justify-center gap-1.5 rounded-btn py-1.5 text-sm font-medium transition-colors",
+            tab === "form" ? "bg-primary-soft text-primary" : "text-muted"
+          )}
+        >
+          <FileText className="h-4 w-4" /> Form
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab("preview")}
+          className={cn(
+            "flex flex-1 items-center justify-center gap-1.5 rounded-btn py-1.5 text-sm font-medium transition-colors",
+            tab === "preview" ? "bg-primary-soft text-primary" : "text-muted"
+          )}
+        >
+          <Eye className="h-4 w-4" /> Preview
+        </button>
+      </div>
+
+      <div className="lg:grid lg:grid-cols-[1fr_minmax(0,460px)] lg:gap-6 lg:items-start">
+        {/* FORM */}
+        <div className={cn("space-y-4", tab !== "form" && "hidden lg:block")}>
+          <Card className="space-y-4 p-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Select label="Template" options={TEMPLATE_OPTIONS} value={values.templateId} onChange={(v) => patch({ templateId: v })} />
+              <Input
+                label="Nomor invoice"
+                value={values.number}
+                onChange={(e) => patch({ number: e.target.value })}
+                helper="Otomatis berurutan; bisa diubah."
+              />
+            </div>
+            <Input label="Nama klien" value={values.clientName} onChange={(e) => patch({ clientName: e.target.value })} placeholder="mis. PT Maju Jaya" />
+            <Textarea label="Alamat klien" value={values.clientAddress} onChange={(e) => patch({ clientAddress: e.target.value })} rows={2} placeholder="Alamat penerima invoice" />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <DatePicker label="Tanggal terbit" value={toDate(values.issueDate)} onChange={(d) => patch({ issueDate: fromDate(d) })} />
+              <DatePicker
+                label="Jatuh tempo"
+                value={toDate(values.dueDate)}
+                onChange={(d) => patch({ dueDate: fromDate(d) })}
+                quickButtons={[
+                  { label: "+14 hari", days: 14 },
+                  { label: "+30 hari", days: 30 },
+                ]}
+              />
+            </div>
+          </Card>
+
+          {/* Items */}
+          <Card className="space-y-3 p-5">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-ink">Item</h3>
+              <Button size="sm" variant="secondary" leftIcon={<Plus className="h-4 w-4" />} onClick={addItem}>
+                Tambah item
+              </Button>
+            </div>
+
+            {values.items.length === 0 && <p className="py-4 text-center text-sm text-muted">Belum ada item. Tambah item pertama.</p>}
+
+            <div className="space-y-3">
+              {values.items.map((it) => (
+                <div key={it.key} className="rounded-btn border border-line p-3">
+                  <div className="grid gap-2 sm:grid-cols-[1fr_72px_120px_auto]">
+                    <Input placeholder="Deskripsi" value={it.description} onChange={(e) => patchItem(it.key, { description: e.target.value })} containerClassName="sm:col-span-1" />
+                    <Input type="number" min={0} placeholder="Qty" value={String(it.quantity)} onChange={(e) => patchItem(it.key, { quantity: Number(e.target.value) || 0 })} />
+                    <CurrencyInput value={it.unit_price} onValueChange={(v) => patchItem(it.key, { unit_price: v ?? 0 })} />
+                    <div className="flex items-center justify-end">
+                      <IconButton aria-label="Hapus item" variant="danger" onClick={() => removeItem(it.key)}>
+                        <Trash2 className="h-4 w-4" />
+                      </IconButton>
+                    </div>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <div className="w-44">
+                      <Select options={CATEGORY_OPTIONS} value={it.category} onChange={(v) => patchItem(it.key, { category: v as ItemCategory })} />
+                    </div>
+                    <span className="font-mono text-sm tabular-nums text-ink">Rp {formatRupiah(lineTotal(it.quantity, it.unit_price))}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* Pajak / diskon / catatan */}
+          <Card className="space-y-4 p-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Input
+                label="Pajak (%)"
+                type="number"
+                min={0}
+                value={String(values.taxPercent)}
+                onChange={(e) => patch({ taxPercent: Number(e.target.value) || 0 })}
+              />
+              <CurrencyInput label="Diskon (Rp)" value={values.discount || null} onValueChange={(v) => patch({ discount: v ?? 0 })} />
+            </div>
+            <Textarea label="Catatan" value={values.notes} onChange={(e) => patch({ notes: e.target.value })} rows={2} placeholder="Termin pembayaran, ucapan terima kasih…" />
+
+            <div className="space-y-1 rounded-btn bg-canvas p-3 text-sm">
+              <div className="flex justify-between"><span className="text-muted">Subtotal</span><span className="font-mono tabular-nums">Rp {formatRupiah(totals.subtotal)}</span></div>
+              {totals.discount > 0 && <div className="flex justify-between"><span className="text-muted">Diskon</span><span className="font-mono tabular-nums text-danger">− Rp {formatRupiah(totals.discount)}</span></div>}
+              {totals.tax > 0 && <div className="flex justify-between"><span className="text-muted">Pajak</span><span className="font-mono tabular-nums">Rp {formatRupiah(totals.tax)}</span></div>}
+              <div className="flex justify-between border-t border-line pt-1 font-semibold"><span>Total</span><span className="font-mono tabular-nums text-primary">Rp {formatRupiah(totals.total)}</span></div>
+            </div>
+          </Card>
+
+          {/* Actions */}
+          <div className="sticky bottom-0 flex flex-wrap items-center justify-end gap-2 rounded-card border border-line bg-surface/90 p-3 shadow-card backdrop-blur">
+            <Button variant="ghost" onClick={handleCancel} disabled={saving !== null}>Batal</Button>
+            <Button variant="secondary" onClick={() => save(true)} loading={saving === "draft"} disabled={saving === "final"}>Simpan draft</Button>
+            <Button onClick={() => save(false)} loading={saving === "final"} disabled={saving === "draft"}>Simpan</Button>
+          </div>
+        </div>
+
+        {/* PREVIEW */}
+        <div className={cn("lg:sticky lg:top-20", tab !== "preview" && "hidden lg:block")}>
+          <div className="overflow-hidden rounded-card border border-line bg-canvas p-3 shadow-card">
+            <div className="max-h-[calc(100vh-7rem)] overflow-auto">
+              <JasaTemplate workspace={workspace} values={values} totals={totals} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Modal
+        open={cancelOpen}
+        onClose={() => setCancelOpen(false)}
+        size="sm"
+        title="Batalkan perubahan?"
+        description="Perubahan yang belum disimpan akan hilang."
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setCancelOpen(false)}>Lanjut mengisi</Button>
+            <Button variant="primary" className="bg-danger hover:bg-danger/90" onClick={() => router.push("/invoices")}>Ya, batalkan</Button>
+          </>
+        }
+      />
+    </div>
+  );
+}

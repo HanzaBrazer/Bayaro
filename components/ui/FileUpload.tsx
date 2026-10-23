@@ -12,6 +12,8 @@ export interface FileUploadProps {
   disabled?: boolean;
   onFileSelect?: (file: File | null) => void;
   className?: string;
+  /** Jika diisi, file ikut ter-submit lewat FormData dengan nama ini. */
+  name?: string;
 }
 
 export function FileUpload({
@@ -22,6 +24,7 @@ export function FileUpload({
   disabled,
   onFileSelect,
   className,
+  name,
 }: FileUploadProps) {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [preview, setPreview] = React.useState<string | null>(null);
@@ -63,6 +66,7 @@ export function FileUpload({
       <input
         ref={inputRef}
         type="file"
+        name={name}
         accept={accept}
         disabled={disabled}
         className="sr-only"

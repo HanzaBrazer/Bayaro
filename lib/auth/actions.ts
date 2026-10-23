@@ -21,7 +21,15 @@ export async function signInAction(_prev: AuthState, formData: FormData): Promis
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) return { error: "Email atau password salah." };
 
-  redirect("/dashboard");
+  let dest = "/dashboard";
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) {
+    const { data: profile } = await supabase.from("users").select("onboarded").eq("id", user.id).maybeSingle();
+    dest = profile?.onboarded ? "/dashboard" : "/onboarding";
+  }
+  redirect(dest);
 }
 
 export async function signUpAction(_prev: AuthState, formData: FormData): Promise<AuthState> {

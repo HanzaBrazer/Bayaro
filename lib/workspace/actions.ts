@@ -1,5 +1,6 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 export type OnboardingState = { error: string | null; success?: boolean };
@@ -99,5 +100,19 @@ export async function saveOnboardingAction(
   const { error: updErr } = await supabase.from("workspaces").update(update).eq("id", workspaceId);
   if (updErr) return { error: "Gagal menyimpan profil usaha." };
 
+  await supabase.from("users").update({ onboarded: true }).eq("id", user.id);
+
   return { error: null, success: true };
+}
+
+/** Lewati onboarding: tandai sudah onboarding, lalu ke /invoices. */
+export async function skipOnboardingAction(): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) {
+    await supabase.from("users").update({ onboarded: true }).eq("id", user.id);
+  }
+  redirect("/invoices");
 }

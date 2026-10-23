@@ -1,10 +1,9 @@
 "use client";
 
 import { useActionState, useEffect } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertCircle } from "lucide-react";
-import { saveOnboardingAction, type OnboardingState, type Workspace } from "@/lib/workspace/actions";
+import { saveOnboardingAction, skipOnboardingAction, type OnboardingState, type Workspace } from "@/lib/workspace/actions";
 import { Input, Textarea, FileUpload, Button, useToast } from "@/components/ui";
 
 const initial: OnboardingState = { error: null };
@@ -70,12 +69,13 @@ export function OnboardingForm({ workspace }: { workspace: Workspace | null }) {
         <Button type="submit" loading={pending} className="flex-1">
           Simpan &amp; mulai
         </Button>
-        <Link
-          href="/invoices"
+        <button
+          type="button"
+          onClick={() => skipOnboardingAction()}
           className="inline-flex h-10 items-center justify-center rounded-btn px-4 text-sm font-medium text-ink-soft transition-colors hover:bg-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           Lewati
-        </Link>
+        </button>
       </div>
     </form>
   );

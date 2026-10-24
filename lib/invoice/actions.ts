@@ -85,6 +85,8 @@ export async function createInvoice(values: InvoiceFormValues, asDraft: boolean)
       client_id: values.clientId || null,
       client_name: values.clientName.trim() || null,
       client_address: values.clientAddress.trim() || null,
+      client_email: values.clientEmail.trim() || null,
+      client_phone: values.clientPhone.trim() || null,
       number,
       type: "jasa",
       template_id: values.templateId || "jasa",
@@ -96,6 +98,7 @@ export async function createInvoice(values: InvoiceFormValues, asDraft: boolean)
       total: totals.total,
       status: "draft",
       notes: values.notes.trim() || null,
+      terms: values.terms.trim() || null,
     })
     .select("id")
     .single();
@@ -134,6 +137,8 @@ export async function updateInvoice(
       client_id: values.clientId || null,
       client_name: values.clientName.trim() || null,
       client_address: values.clientAddress.trim() || null,
+      client_email: values.clientEmail.trim() || null,
+      client_phone: values.clientPhone.trim() || null,
       number: values.number.trim(),
       template_id: values.templateId || "jasa",
       issue_date: values.issueDate,
@@ -143,6 +148,7 @@ export async function updateInvoice(
       discount: totals.discount,
       total: totals.total,
       notes: values.notes.trim() || null,
+      terms: values.terms.trim() || null,
     })
     .eq("id", id);
 
@@ -222,6 +228,8 @@ export async function getInvoiceForEdit(id: string): Promise<InvoiceForEdit | nu
     clientId: inv.client_id ?? null,
     clientName: inv.client_name ?? "",
     clientAddress: inv.client_address ?? "",
+    clientEmail: inv.client_email ?? "",
+    clientPhone: inv.client_phone ?? "",
     number: inv.number ?? "",
     issueDate: inv.issue_date ?? "",
     dueDate: inv.due_date ?? null,
@@ -235,6 +243,7 @@ export async function getInvoiceForEdit(id: string): Promise<InvoiceForEdit | nu
     taxPercent: inv.subtotal && inv.subtotal - inv.discount > 0 ? Math.round((Number(inv.tax) / (Number(inv.subtotal) - Number(inv.discount))) * 100) : 0,
     discount: Number(inv.discount) || 0,
     notes: inv.notes ?? "",
+    terms: inv.terms ?? "",
     templateId: inv.template_id ?? "jasa",
   };
 

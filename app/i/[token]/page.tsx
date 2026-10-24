@@ -36,6 +36,8 @@ export default async function PublicInvoicePage({
     clientId: inv.client_id ?? null,
     clientName: inv.client_name ?? "",
     clientAddress: inv.client_address ?? "",
+    clientEmail: inv.client_email ?? "",
+    clientPhone: inv.client_phone ?? "",
     number: inv.number ?? "",
     issueDate: inv.issue_date ?? "",
     dueDate: inv.due_date ?? null,
@@ -49,6 +51,7 @@ export default async function PublicInvoicePage({
     taxPercent: afterDiscount > 0 ? Math.round((Number(inv.tax) / afterDiscount) * 100) : 0,
     discount: Number(inv.discount) || 0,
     notes: inv.notes ?? "",
+    terms: inv.terms ?? "",
     templateId: inv.template_id ?? "jasa",
   };
   const totals: InvoiceTotals = {

@@ -13,6 +13,8 @@ export interface InvoiceFormValues {
   clientId: string | null;
   clientName: string;
   clientAddress: string;
+  clientEmail: string;
+  clientPhone: string;
   number: string;
   issueDate: string; // yyyy-mm-dd
   dueDate: string | null; // yyyy-mm-dd
@@ -20,6 +22,7 @@ export interface InvoiceFormValues {
   taxPercent: number;
   discount: number; // Rp
   notes: string;
+  terms: string;
   templateId: string;
 }
 
@@ -31,6 +34,15 @@ export interface WorkspaceInfo {
   bank_account: string | null;
   invoice_prefix: string | null;
   next_invoice_number: number | null;
+  // Identitas usaha lengkap (migrasi 0005)
+  phone?: string | null;
+  email?: string | null;
+  website?: string | null;
+  signatory?: string | null;
+  bank_name?: string | null;
+  account_number?: string | null;
+  account_holder?: string | null;
+  terms?: string | null;
 }
 
 export const CATEGORY_LABEL: Record<ItemCategory, string> = {

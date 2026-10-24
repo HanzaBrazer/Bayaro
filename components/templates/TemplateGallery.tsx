@@ -14,6 +14,8 @@ function sampleValues(templateId: string): InvoiceFormValues {
     clientId: null,
     clientName: "PT Contoh Klien",
     clientAddress: "Jl. Merdeka No. 1, Jakarta",
+    clientEmail: "halo@contohklien.com",
+    clientPhone: "0812-3456-7890",
     number: "INV-0001",
     issueDate: new Date().toISOString().slice(0, 10),
     dueDate: null,
@@ -24,6 +26,7 @@ function sampleValues(templateId: string): InvoiceFormValues {
     taxPercent: 11,
     discount: 0,
     notes: "Terima kasih atas kepercayaannya.",
+    terms: "Pembayaran paling lambat 14 hari setelah invoice diterbitkan.",
     templateId,
   };
 }

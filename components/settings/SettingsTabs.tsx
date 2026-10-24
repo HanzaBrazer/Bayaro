@@ -35,7 +35,14 @@ export function SettingsTabs({
   // Profil
   const [name, setName] = React.useState(workspace.name ?? "");
   const [address, setAddress] = React.useState(workspace.address ?? "");
-  const [bank, setBank] = React.useState(workspace.bank_account ?? "");
+  const [phone, setPhone] = React.useState(workspace.phone ?? "");
+  const [email, setEmail] = React.useState(workspace.email ?? "");
+  const [website, setWebsite] = React.useState(workspace.website ?? "");
+  const [bankName, setBankName] = React.useState(workspace.bank_name ?? "");
+  const [accountNumber, setAccountNumber] = React.useState(workspace.account_number ?? "");
+  const [accountHolder, setAccountHolder] = React.useState(workspace.account_holder ?? "");
+  const [signatory, setSignatory] = React.useState(workspace.signatory ?? "");
+  const [terms, setTerms] = React.useState(workspace.terms ?? "");
   const [logoUrl, setLogoUrl] = React.useState<string | null>(workspace.logo_url ?? null);
   const [logoFile, setLogoFile] = React.useState<File | null>(null);
   const [savingProfile, setSavingProfile] = React.useState(false);
@@ -47,7 +54,19 @@ export function SettingsTabs({
 
   async function saveProfile() {
     setSavingProfile(true);
-    const res = await saveWorkspaceProfile({ name, address, bankAccount: bank });
+    const res = await saveWorkspaceProfile({
+      name,
+      address,
+      bankAccount: workspace.bank_account ?? "", // pertahankan data lama
+      phone,
+      email,
+      website,
+      signatory,
+      bankName,
+      accountNumber,
+      accountHolder,
+      terms,
+    });
     if (res.error) {
       setSavingProfile(false);
       return toast.error("Gagal", res.error);
@@ -116,7 +135,27 @@ export function SettingsTabs({
             </div>
 
             <Textarea label="Alamat" value={address} onChange={(e) => setAddress(e.target.value)} rows={2} />
-            <Input label="No. rekening / bank" value={bank} onChange={(e) => setBank(e.target.value)} placeholder="mis. BCA 1234567890 a.n. Nama" />
+
+            {/* Kontak — tampil di "Invoice From" & footer invoice */}
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Input label="Telepon" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="08xxxxxxxxxx" />
+              <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="usaha@email.com" />
+              <Input label="Website" value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="usaha.com" />
+            </div>
+
+            {/* Payment Info — tampil di blok "Payment Info" invoice */}
+            <div className="space-y-3 rounded-btn border border-line bg-canvas p-3">
+              <p className="text-[13px] font-semibold text-ink">Info pembayaran</p>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Input label="Nama bank" value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="mis. BCA" />
+                <Input label="No. rekening" value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} placeholder="1234567890" />
+                <Input label="Atas nama" value={accountHolder} onChange={(e) => setAccountHolder(e.target.value)} placeholder="Nama pemilik rekening" />
+              </div>
+            </div>
+
+            <Input label="Nama penandatangan (opsional)" value={signatory} onChange={(e) => setSignatory(e.target.value)} placeholder="mis. Budi Santoso" helper="Tampil di atas garis “Authorised Sign” pada invoice." />
+            <Textarea label="Syarat & ketentuan default (opsional)" value={terms} onChange={(e) => setTerms(e.target.value)} rows={3} placeholder="mis. Pembayaran paling lambat 14 hari setelah invoice diterbitkan." helper="Dipakai otomatis pada invoice baru; bisa diubah per invoice." />
+
             <div className="flex justify-end">
               <Button onClick={saveProfile} loading={savingProfile}>Simpan perubahan</Button>
             </div>

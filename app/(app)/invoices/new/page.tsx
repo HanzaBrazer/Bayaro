@@ -26,6 +26,8 @@ export default async function NewInvoicePage() {
     clientId: null,
     clientName: "",
     clientAddress: "",
+    clientEmail: "",
+    clientPhone: "",
     number: suggestion,
     issueDate: todayWIB(),
     dueDate: null,
@@ -33,6 +35,7 @@ export default async function NewInvoicePage() {
     taxPercent: 11,
     discount: 0,
     notes: "",
+    terms: ws.terms ?? "",
     templateId: ws.default_template_id ?? "jasa",
   };
 

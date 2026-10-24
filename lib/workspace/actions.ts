@@ -15,6 +15,15 @@ export type Workspace = {
   invoice_prefix: string | null;
   next_invoice_number: number | null;
   default_template_id: string | null;
+  // Detail identitas usaha (migrasi 0005)
+  phone: string | null;
+  email: string | null;
+  website: string | null;
+  signatory: string | null;
+  bank_name: string | null;
+  account_number: string | null;
+  account_holder: string | null;
+  terms: string | null;
 };
 
 /** Workspace milik user yang login (yang pertama / default). */
@@ -110,6 +119,14 @@ export async function saveWorkspaceProfile(input: {
   name: string;
   address: string;
   bankAccount: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  signatory?: string;
+  bankName?: string;
+  accountNumber?: string;
+  accountHolder?: string;
+  terms?: string;
 }): Promise<{ error: string | null }> {
   const supabase = await createClient();
   const {
@@ -117,12 +134,21 @@ export async function saveWorkspaceProfile(input: {
   } = await supabase.auth.getUser();
   if (!user) return { error: "Sesi berakhir. Masuk lagi." };
   if (!input.name.trim()) return { error: "Nama usaha wajib diisi." };
+  const norm = (v?: string) => (v && v.trim() ? v.trim() : null);
   const { error } = await supabase
     .from("workspaces")
     .update({
       name: input.name.trim(),
-      address: input.address.trim() || null,
-      bank_account: input.bankAccount.trim() || null,
+      address: norm(input.address),
+      bank_account: norm(input.bankAccount),
+      phone: norm(input.phone),
+      email: norm(input.email),
+      website: norm(input.website),
+      signatory: norm(input.signatory),
+      bank_name: norm(input.bankName),
+      account_number: norm(input.accountNumber),
+      account_holder: norm(input.accountHolder),
+      terms: norm(input.terms),
     })
     .eq("owner_user_id", user.id);
   return { error: error ? "Gagal menyimpan profil." : null };

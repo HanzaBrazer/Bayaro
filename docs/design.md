@@ -379,6 +379,27 @@ Validasi: minimal 1 item, klien terisi, total > 0. Error ditandai inline.
 
 Watermark halus muncul di tiga output untuk **Free**, hilang untuk **Pro**.
 
+> Export PDF/PNG dirender **di sisi browser** (html2canvas + jsPDF) dari elemen
+> `#invoice-doc` yang sama — identik dengan view publik, unduhan langsung ke perangkat.
+
+#### 5.7.1 Anatomi dokumen invoice (Jasa / Barang / Sewa)
+
+Ketiga skin memakai struktur blok yang sama (beda warna/kepala):
+1. **Header** — logo + nama usaha + alamat · judul **INVOICE** + nomor.
+   *(Barang: bar gelap; Sewa: aksen emas; Jasa: bersih.)*
+2. **Meta** — Tanggal terbit & Jatuh tempo.
+3. **Ditagihkan kepada** (klien: nama, alamat, telp, email) · **Dari** (usaha: nama, alamat, telp, email).
+4. **Tabel item** — No. · Deskripsi · Harga · Qty · Jumlah (kepala tabel berwarna per skin).
+5. **Info Pembayaran** (Bank · No. Rekening · Atas Nama) · **Ringkasan** (Subtotal, Diskon, Pajak %, **Total** di bar warna).
+6. **Catatan** (ucapan) · **Authorised Sign** (garis + nama penandatangan).
+7. **Syarat & Ketentuan**.
+8. **Footer** — Telepon · Email · Website. *(Barang: bar gelap.)*
+
+Sumber data: identitas usaha (nama, logo, alamat, telp, email, website, pembayaran,
+penandatangan, S&K default) dari `workspaces` (Pengaturan → Profil); kontak klien & S&K
+per-invoice disimpan sebagai snapshot di `invoices`. **Kwitansi** tetap format tanda terima
+terpisah (terbilang).
+
 ### 5.8 Halaman View Publik (link browser)
 
 - URL read-only, bisa dibuka siapa pun tanpa login/akun.
@@ -410,11 +431,15 @@ Watermark halus muncul di tiga output untuk **Free**, hilang untuk **Pro**.
 
 Tab di dalam halaman: **Profil Usaha · Penomoran · Billing**.
 
-**Profil Usaha**
+**Profil Usaha** — identitas usaha yang dipakai di semua invoice.
 | Field/tombol | Perilaku |
 |---|---|
-| Nama, alamat, rekening, logo | edit → **Simpan perubahan** (toast) |
-| Upload logo | preview langsung, batas ukuran file |
+| Nama, alamat | edit → **Simpan perubahan** (toast) |
+| Upload logo | preview langsung, batas ukuran file; bisa diganti/dihapus |
+| Telepon · Email · Website | tampil di "Dari" & footer invoice |
+| Info pembayaran: Nama bank · No. rekening · Atas nama | tampil di blok "Info Pembayaran" invoice |
+| Nama penandatangan (opsional) | tampil di atas garis "Authorised Sign" |
+| Syarat & ketentuan default (opsional) | prefill S&K di invoice baru |
 
 **Penomoran**
 | Field | Perilaku |

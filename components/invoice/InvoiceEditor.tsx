@@ -86,7 +86,7 @@ export function InvoiceEditor({
 
   function selectClient(id: string) {
     const c = clientList.find((x) => x.id === id);
-    if (c) patch({ clientId: c.id, clientName: c.name, clientAddress: c.address ?? "" });
+    if (c) patch({ clientId: c.id, clientName: c.name, clientAddress: c.address ?? "", clientEmail: c.email ?? "", clientPhone: c.phone ?? "" });
   }
 
   const totals = React.useMemo(
@@ -195,6 +195,10 @@ export function InvoiceEditor({
               {clientList.length === 0 && (
                 <p className="text-xs text-muted">Belum ada klien. Klik “Klien baru”.</p>
               )}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Input label="Email klien" type="email" value={values.clientEmail} onChange={(e) => patch({ clientEmail: e.target.value })} placeholder="email@klien.com" />
+                <Input label="Telepon klien" value={values.clientPhone} onChange={(e) => patch({ clientPhone: e.target.value })} placeholder="08xxxxxxxxxx" />
+              </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <DatePicker
@@ -268,7 +272,8 @@ export function InvoiceEditor({
               />
               <CurrencyInput label="Diskon (Rp)" value={values.discount || null} onValueChange={(v) => patch({ discount: v ?? 0 })} />
             </div>
-            <Textarea label="Catatan" value={values.notes} onChange={(e) => patch({ notes: e.target.value })} rows={2} placeholder="Termin pembayaran, ucapan terima kasih…" />
+            <Textarea label="Catatan" value={values.notes} onChange={(e) => patch({ notes: e.target.value })} rows={2} placeholder="Ucapan terima kasih…" />
+            <Textarea label="Syarat & ketentuan" value={values.terms} onChange={(e) => patch({ terms: e.target.value })} rows={2} placeholder="mis. Pembayaran paling lambat 14 hari…" helper="Terisi otomatis dari pengaturan usaha; bisa diubah per invoice." />
 
             <div className="space-y-1 rounded-btn bg-canvas p-3 text-sm">
               <div className="flex justify-between"><span className="text-muted">Subtotal</span><span className="font-mono tabular-nums">Rp {formatRupiah(totals.subtotal)}</span></div>
@@ -358,10 +363,10 @@ export function InvoiceEditor({
         onSaved={(c, persisted) => {
           if (persisted) {
             setClientList((prev) => [...prev.filter((x) => x.id !== c.id), c].sort((a, b) => a.name.localeCompare(b.name)));
-            patch({ clientId: c.id, clientName: c.name, clientAddress: c.address ?? "" });
+            patch({ clientId: c.id, clientName: c.name, clientAddress: c.address ?? "", clientEmail: c.email ?? "", clientPhone: c.phone ?? "" });
           } else {
             // Sekali pakai: tak masuk daftar klien, hanya snapshot di invoice ini.
-            patch({ clientId: null, clientName: c.name, clientAddress: c.address ?? "" });
+            patch({ clientId: null, clientName: c.name, clientAddress: c.address ?? "", clientEmail: c.email ?? "", clientPhone: c.phone ?? "" });
           }
         }}
       />

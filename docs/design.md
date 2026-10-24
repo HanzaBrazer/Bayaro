@@ -382,11 +382,18 @@ Watermark halus muncul di tiga output untuk **Free**, hilang untuk **Pro**.
 > Export PDF/PNG dirender **di sisi browser** (html2canvas + jsPDF) dari elemen
 > `#invoice-doc` yang sama — identik dengan view publik, unduhan langsung ke perangkat.
 
-#### 5.7.1 Anatomi dokumen invoice (Jasa / Barang / Sewa)
+#### 5.7.1 Anatomi dokumen invoice
 
-Ketiga skin memakai struktur blok yang sama (beda warna/kepala):
+**Jasa** memakai layout tersendiri (desain referensi): pita **INVOICE** vertikal gelap
+di kiri, header hijau berisi identitas usaha, pita putih **Total Tagihan**, **Catatan**,
+lalu **Dari** / **Ditagihkan Kepada**; di bawahnya Nomor Invoice + Syarat & Ketentuan,
+bar info (No. Rekening · Atas Nama · Tanggal Terbit · Jatuh Tempo), tabel item zebra,
+tanda tangan + ringkasan, dan footer hijau (alamat · website). Seluruh teks memakai
+**Plus Jakarta Sans**.
+
+**Barang / Sewa** memakai struktur blok yang sama (beda warna/kepala):
 1. **Header** — logo + nama usaha + alamat · judul **INVOICE** + nomor.
-   *(Barang: bar gelap; Sewa: aksen emas; Jasa: bersih.)*
+   *(Barang: bar gelap; Sewa: aksen emas.)*
 2. **Meta** — Tanggal terbit & Jatuh tempo.
 3. **Ditagihkan kepada** (klien: nama, alamat, telp, email) · **Dari** (usaha: nama, alamat, telp, email).
 4. **Tabel item** — No. · Deskripsi · Harga · Qty · Jumlah (kepala tabel berwarna per skin).

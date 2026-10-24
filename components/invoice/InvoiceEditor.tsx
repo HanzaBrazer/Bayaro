@@ -112,23 +112,29 @@ export function InvoiceEditor({
   }
 
   async function save(asDraft: boolean) {
+    if (saving) return;
     setSaving(asDraft ? "draft" : "final");
-    const res = mode === "edit" && invoiceId
-      ? await updateInvoice(invoiceId, values, asDraft)
-      : await createInvoice(values, asDraft);
-    setSaving(null);
-    if (res.error) {
-      if (res.quota) {
-        setPaywallOpen(true);
+    try {
+      const res = mode === "edit" && invoiceId
+        ? await updateInvoice(invoiceId, values, asDraft)
+        : await createInvoice(values, asDraft);
+      if (res.error) {
+        if (res.quota) {
+          setPaywallOpen(true);
+          return;
+        }
+        toast.error("Gagal menyimpan", res.error);
         return;
       }
-      toast.error("Gagal menyimpan", res.error);
-      return;
+      setDirty(false);
+      toast.success(asDraft ? "Draft tersimpan" : "Invoice tersimpan");
+      router.push("/invoices");
+      router.refresh();
+    } catch {
+      toast.error("Gagal menyimpan", "Jaringan bermasalah. Coba lagi.");
+    } finally {
+      setSaving(null); // spinner selalu berhenti
     }
-    setDirty(false);
-    toast.success(asDraft ? "Draft tersimpan" : "Invoice tersimpan");
-    router.push("/invoices");
-    router.refresh();
   }
 
   function handleCancel() {

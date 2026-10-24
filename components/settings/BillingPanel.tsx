@@ -44,20 +44,30 @@ export function BillingPanel({
 
   // Verifikasi status ke server (yang mengecek langsung ke Midtrans) lalu aktifkan Pro.
   async function finalize(orderId: string) {
-    const res = await confirmUpgrade(orderId);
-    setLoading(false);
-    if (res.plan === "pro") {
-      toast.success("Pembayaran berhasil", "Paket Pro sudah aktif.");
+    try {
+      const res = await confirmUpgrade(orderId);
+      if (res.plan === "pro") {
+        toast.success("Pembayaran berhasil", "Paket Pro sudah aktif.");
+      } else {
+        toast.info("Menunggu konfirmasi", "Status akan diperbarui otomatis setelah pembayaran terkonfirmasi.");
+      }
       router.refresh();
-    } else {
-      toast.info("Menunggu konfirmasi", "Status akan diperbarui otomatis setelah pembayaran terkonfirmasi.");
-      router.refresh();
+    } catch {
+      toast.error("Gagal memeriksa pembayaran", "Muat ulang halaman untuk melihat status terbaru.");
+    } finally {
+      setLoading(false); // spinner selalu berhenti
     }
   }
 
   async function upgrade() {
+    if (loading) return;
     setLoading(true);
-    const res = await createUpgradeOrder();
+    let res: { token?: string; orderId?: string; error?: string };
+    try {
+      res = await createUpgradeOrder();
+    } catch {
+      res = { error: "Jaringan bermasalah." };
+    }
     if (res.error || !res.token || !res.orderId) {
       setLoading(false);
       return toast.error("Gagal memulai pembayaran", res.error ?? "Coba lagi.");

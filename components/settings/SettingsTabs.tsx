@@ -53,45 +53,52 @@ export function SettingsTabs({
   const [savingNo, setSavingNo] = React.useState(false);
 
   async function saveProfile() {
+    if (savingProfile) return;
     setSavingProfile(true);
-    const res = await saveWorkspaceProfile({
-      name,
-      address,
-      bankAccount: workspace.bank_account ?? "", // pertahankan data lama
-      phone,
-      email,
-      website,
-      signatory,
-      bankName,
-      accountNumber,
-      accountHolder,
-      terms,
-    });
-    if (res.error) {
-      setSavingProfile(false);
-      return toast.error("Gagal", res.error);
-    }
-    // Logo opsional: hanya diunggah bila user memilih file baru.
-    if (logoFile) {
-      const fd = new FormData();
-      fd.append("logo", logoFile);
-      const up = await uploadWorkspaceLogo(fd);
-      if (up.error) {
-        setSavingProfile(false);
-        return toast.error("Profil tersimpan, logo gagal", up.error);
+    try {
+      const res = await saveWorkspaceProfile({
+        name,
+        address,
+        bankAccount: workspace.bank_account ?? "", // pertahankan data lama
+        phone,
+        email,
+        website,
+        signatory,
+        bankName,
+        accountNumber,
+        accountHolder,
+        terms,
+      });
+      if (res.error) return toast.error("Gagal", res.error);
+
+      // Logo opsional: hanya diunggah bila user memilih file baru.
+      if (logoFile) {
+        const fd = new FormData();
+        fd.append("logo", logoFile);
+        const up = await uploadWorkspaceLogo(fd);
+        if (up.error) return toast.error("Profil tersimpan, logo gagal", up.error);
+        if (up.logoUrl) setLogoUrl(up.logoUrl);
+        setLogoFile(null);
       }
-      if (up.logoUrl) setLogoUrl(up.logoUrl);
-      setLogoFile(null);
+      toast.success("Profil tersimpan");
+    } catch {
+      toast.error("Gagal menyimpan", "Jaringan bermasalah. Coba lagi.");
+    } finally {
+      setSavingProfile(false); // spinner selalu berhenti
     }
-    setSavingProfile(false);
-    toast.success("Profil tersimpan");
   }
   async function saveNo() {
+    if (savingNo) return;
     setSavingNo(true);
-    const res = await saveNumbering({ prefix, nextNumber: Number(nextNo) || 1 });
-    setSavingNo(false);
-    if (res.error) return toast.error("Gagal", res.error);
-    toast.success("Penomoran tersimpan");
+    try {
+      const res = await saveNumbering({ prefix, nextNumber: Number(nextNo) || 1 });
+      if (res.error) return toast.error("Gagal", res.error);
+      toast.success("Penomoran tersimpan");
+    } catch {
+      toast.error("Gagal menyimpan", "Jaringan bermasalah. Coba lagi.");
+    } finally {
+      setSavingNo(false);
+    }
   }
 
   return (

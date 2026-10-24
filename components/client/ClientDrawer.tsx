@@ -63,25 +63,30 @@ export function ClientDrawer({
       return;
     }
 
+    if (saving) return;
     setSaving(true);
     const input = { name, email, phone, address };
-    if (initial) {
-      const res = await updateClientRecord(initial.id, input);
-      setSaving(false);
-      if (res.error) return setError(res.error);
-      toast.success("Klien diperbarui");
-      onSaved?.(
-        { id: initial.id, name: name.trim(), email: email.trim() || null, phone: phone.trim() || null, address: address.trim() || null },
-        true
-      );
-      onClose();
-    } else {
-      const res = await createClientRecord(input);
-      setSaving(false);
-      if (res.error || !res.client) return setError(res.error ?? "Gagal menyimpan klien.");
-      toast.success("Klien tersimpan");
-      onSaved?.(res.client, true);
-      onClose();
+    try {
+      if (initial) {
+        const res = await updateClientRecord(initial.id, input);
+        if (res.error) return setError(res.error);
+        toast.success("Klien diperbarui");
+        onSaved?.(
+          { id: initial.id, name: name.trim(), email: email.trim() || null, phone: phone.trim() || null, address: address.trim() || null },
+          true
+        );
+        onClose();
+      } else {
+        const res = await createClientRecord(input);
+        if (res.error || !res.client) return setError(res.error ?? "Gagal menyimpan klien.");
+        toast.success("Klien tersimpan");
+        onSaved?.(res.client, true);
+        onClose();
+      }
+    } catch {
+      setError("Jaringan bermasalah. Coba lagi.");
+    } finally {
+      setSaving(false); // spinner selalu berhenti
     }
   }
 

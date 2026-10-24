@@ -111,22 +111,32 @@ export function InvoiceList({ invoices, initialStatus = "all" }: { invoices: Inv
 
   async function changeStatus(id: string, next: InvoiceStatus) {
     setBusy(true);
-    const res = await updateInvoiceStatus(id, next);
-    setBusy(false);
-    if (res.error) return toast.error("Gagal", res.error);
-    toast.success("Status diperbarui");
-    router.refresh();
+    try {
+      const res = await updateInvoiceStatus(id, next);
+      if (res.error) return toast.error("Gagal", res.error);
+      toast.success("Status diperbarui");
+      router.refresh();
+    } catch {
+      toast.error("Gagal", "Jaringan bermasalah. Coba lagi.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function confirmDelete() {
     if (!deleteTarget) return;
     setBusy(true);
-    const res = await deleteInvoice(deleteTarget.id);
-    setBusy(false);
-    if (res.error) return toast.error("Gagal", res.error);
-    setDeleteTarget(null);
-    toast.success("Invoice dihapus");
-    router.refresh();
+    try {
+      const res = await deleteInvoice(deleteTarget.id);
+      if (res.error) return toast.error("Gagal", res.error);
+      setDeleteTarget(null);
+      toast.success("Invoice dihapus");
+      router.refresh();
+    } catch {
+      toast.error("Gagal", "Jaringan bermasalah. Coba lagi.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   const itemCls =

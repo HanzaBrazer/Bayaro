@@ -14,11 +14,15 @@ export async function getBilling(): Promise<BillingInfo> {
   } = await supabase.auth.getUser();
   if (!user) return { plan: "free", currentPeriodEnd: null, price: PRO_PRICE, history: [] };
 
-  // Self-heal: jika order terakhir masih "pending" padahal sudah dibayar
-  // (webhook belum/tak masuk, mis. di localhost), cek ke Midtrans & aktifkan.
-  await reconcileLatestPending(user.id);
+  // Self-heal: hanya bila BELUM Pro. Kalau sudah Pro, tak ada yang perlu
+  // direkonsiliasi — hindari panggilan jaringan ke Midtrans tiap render
+  // (ikut memperlambat server action & perpindahan tab).
+  let plan = await getPlanFor(supabase, user.id);
+  if (plan !== "pro") {
+    await reconcileLatestPending(user.id);
+    plan = await getPlanFor(supabase, user.id);
+  }
 
-  const plan = await getPlanFor(supabase, user.id);
   const { data: subs } = await supabase
     .from("subscriptions")
     .select("id,midtrans_order_id,status,plan,current_period_end,created_at")
@@ -59,28 +63,38 @@ async function reconcileLatestPending(userId: string): Promise<void> {
       .limit(5);
     if (!pendings || pendings.length === 0) return;
 
-    for (const sub of pendings) {
-      if (!sub.midtrans_order_id) continue;
-      const st = await getTransactionStatus(sub.midtrans_order_id as string);
-      const paid =
-        (st.transactionStatus === "settlement" || st.transactionStatus === "capture") &&
-        (st.fraudStatus === undefined || st.fraudStatus === "accept");
+    // Cek paralel (bukan berurutan) agar render halaman tidak lama menunggu.
+    const checked = await Promise.all(
+      pendings
+        .filter((s) => s.midtrans_order_id)
+        .map(async (s) => ({ sub: s, st: await getTransactionStatus(s.midtrans_order_id as string) }))
+    );
 
-      if (paid) {
-        const end = new Date();
-        end.setDate(end.getDate() + PRO_DAYS);
-        await admin
-          .from("subscriptions")
-          .update({ status: "active", current_period_end: end.toISOString(), updated_at: new Date().toISOString() })
-          .eq("id", sub.id);
-        return; // cukup satu yang aktif
-      }
-      if (["deny", "cancel", "expire", "failure"].includes(st.transactionStatus)) {
-        await admin
-          .from("subscriptions")
-          .update({ status: "inactive", updated_at: new Date().toISOString() })
-          .eq("id", sub.id);
-      }
+    const paidOne = checked.find(
+      ({ st }) =>
+        (st.transactionStatus === "settlement" || st.transactionStatus === "capture") &&
+        (st.fraudStatus === undefined || st.fraudStatus === "accept")
+    );
+
+    if (paidOne) {
+      const end = new Date();
+      end.setDate(end.getDate() + PRO_DAYS);
+      await admin
+        .from("subscriptions")
+        .update({ status: "active", current_period_end: end.toISOString(), updated_at: new Date().toISOString() })
+        .eq("id", paidOne.sub.id);
+      return; // cukup satu yang aktif
+    }
+
+    // Tandai yang jelas gagal/kedaluwarsa agar tak dicek lagi lain kali.
+    const deadIds = checked
+      .filter(({ st }) => ["deny", "cancel", "expire", "failure"].includes(st.transactionStatus))
+      .map(({ sub }) => sub.id);
+    if (deadIds.length > 0) {
+      await admin
+        .from("subscriptions")
+        .update({ status: "inactive", updated_at: new Date().toISOString() })
+        .in("id", deadIds);
     }
   } catch {
     // diabaikan — status akan disinkronkan lewat webhook / percobaan berikutnya

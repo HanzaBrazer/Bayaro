@@ -23,6 +23,8 @@ export async function getTransactionStatus(orderId: string): Promise<MidtransSta
         Authorization: `Basic ${auth}`,
       },
       cache: "no-store",
+      // Jangan pernah menggantung: render halaman/server action ikut menunggu ini.
+      signal: AbortSignal.timeout(6000),
     });
     const data = await res.json();
     // 404 = transaksi belum terbentuk di Midtrans (belum bayar).

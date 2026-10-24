@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient as createServerClient } from "@/lib/supabase/server";
+import { BayaroMark } from "@/components/brand/Logo";
 import { getPlanFor } from "@/lib/plan/quota";
 import { getTemplate } from "@/components/invoice/templates/registry";
 import { PublicInvoiceActions } from "@/components/invoice/PublicInvoiceActions";
-import { getPublicClaimStatus } from "@/lib/payment/actions";
+import { getPublicClaimStatus, getPendingProofFor } from "@/lib/payment/actions";
 import type { InvoiceFormValues, WorkspaceInfo, ItemCategory } from "@/lib/invoice/types";
 import type { InvoiceTotals } from "@/lib/invoice/calc";
 
@@ -64,6 +66,14 @@ export default async function PublicInvoicePage({
   };
   const workspace = (ws ?? {}) as WorkspaceInfo;
 
+  // Apakah yang membuka halaman ini pemilik invoice? (sesi login, bila ada)
+  const sessionClient = await createServerClient();
+  const {
+    data: { user },
+  } = await sessionClient.auth.getUser();
+  const isOwner = !!user && (ws as { owner_user_id?: string } | null)?.owner_user_id === user.id;
+  const pendingProof = isOwner ? await getPendingProofFor(inv.id as string) : null;
+
   // Watermark hanya untuk pemilik invoice ber-plan Free; Pro tanpa watermark.
   const claimStatus = await getPublicClaimStatus(token);
   const ownerPlan = await getPlanFor(admin, inv.user_id as string);
@@ -80,18 +90,45 @@ export default async function PublicInvoicePage({
 
   return (
     <main className="min-h-screen bg-canvas py-8">
-      <div className="mx-auto max-w-[840px] px-4">
-        <PublicInvoiceActions
-          token={token}
-          number={values.number}
-          total={totals.total}
-          isPaid={inv.status === "lunas"}
-          claimStatus={claimStatus}
-          autoDownload={autoDownload}
-        />
-        <div className="mt-4 overflow-hidden rounded-card border border-line shadow-card">
-          <Template workspace={workspace} values={values} totals={totals} watermark={watermark} />
+      <div className="mx-auto max-w-[1120px] px-4">
+        {/* Kop halaman */}
+        <div className="mb-4 flex items-center gap-2.5">
+          <span className="flex h-9 w-9 items-center justify-center rounded-card bg-ink text-bone">
+            <BayaroMark className="h-5 w-5" />
+          </span>
+          <div>
+            <p className="text-xs text-muted">Invoice</p>
+            <p className="font-mono text-base font-semibold text-ink">{values.number}</p>
+          </div>
         </div>
+
+        {/* Dokumen (kiri) + panel aksi (kanan). Di mobile panel naik ke atas. */}
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
+          {/* Panel aksi didahulukan di DOM agar urutan fokus = urutan tampil di mobile;
+              di desktop digeser ke kolom kanan lewat `order`. */}
+          <div className="lg:order-2 lg:sticky lg:top-6">
+            <PublicInvoiceActions
+              token={token}
+              number={values.number}
+              invoiceId={inv.id as string}
+              total={totals.total}
+              isPaid={inv.status === "lunas"}
+              claimStatus={claimStatus}
+              isOwner={isOwner}
+              pendingProof={pendingProof}
+              autoDownload={autoDownload}
+            />
+          </div>
+          {/* Dokumen berukuran tetap A4 (794px). Di layar sempit digeser
+              horizontal, bukan dipaksa menyusut — tata letak absolutnya akan
+              saling tumpuk kalau kontainernya mengecil. */}
+          <div className="overflow-x-auto rounded-card border border-line shadow-card lg:order-1">
+            <div className="w-[794px]">
+              <Template workspace={workspace} values={values} totals={totals} watermark={watermark} />
+            </div>
+          </div>
+        </div>
+
         <p className="mt-6 text-center text-xs text-muted">Dibuat dengan Bayaro</p>
       </div>
     </main>

@@ -12,6 +12,7 @@ import type { InvoiceFormValues, WorkspaceInfo } from "@/lib/invoice/types";
 function sampleValues(templateId: string): InvoiceFormValues {
   return {
     clientId: null,
+    projectName: "Rebranding Website",
     clientName: "PT Contoh Klien",
     clientAddress: "Jl. Merdeka No. 1, Jakarta",
     clientEmail: "halo@contohklien.com",

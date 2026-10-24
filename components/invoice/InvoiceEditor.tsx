@@ -187,6 +187,13 @@ export function InvoiceEditor({
                 helper="Otomatis berurutan; bisa diubah."
               />
             </div>
+            <Input
+              label="Nama proyek (opsional)"
+              value={values.projectName}
+              onChange={(e) => patch({ projectName: e.target.value })}
+              placeholder="mis. Rebranding Website"
+              helper="Tampil di blok “Nama Proyek” pada template Jasa."
+            />
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-[13px] font-medium text-ink">Klien</label>

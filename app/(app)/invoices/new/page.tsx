@@ -24,6 +24,7 @@ export default async function NewInvoicePage() {
 
   const initialValues: InvoiceFormValues = {
     clientId: null,
+    projectName: "",
     clientName: "",
     clientAddress: "",
     clientEmail: "",

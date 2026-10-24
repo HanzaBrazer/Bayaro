@@ -29,6 +29,8 @@ export function JasaTemplate({ workspace, values, totals, watermark }: TemplateP
   const bizName = workspace.name || "Usaha Saya";
   const terms = values.terms?.trim() || workspace.terms?.trim() || "";
   const signatory = workspace.signatory?.trim() || "";
+  const projectName = values.projectName?.trim() || "";
+  const notes = values.notes?.trim() || "";
   const rekening = [workspace.bank_name, workspace.account_number].filter((v) => v && v.trim()).join(" ");
   const money = (n: number) => `Rp ${formatRupiah(n)}`;
   const dash = (v?: string | null) => (v && v.trim() ? v : "—");
@@ -110,12 +112,17 @@ export function JasaTemplate({ workspace, values, totals, watermark }: TemplateP
           <span className="text-[14px] font-bold">{money(totals.total)}</span>
         </div>
 
-        {/* Catatan */}
+        {/* Nama proyek + deskripsi (fallback ke Catatan bila proyek kosong) */}
         <div className="absolute" style={{ left: CONTENT_LEFT, right: CONTENT_RIGHT, top: 176 }}>
-          <p className="mb-[6px] text-[13px] font-bold text-white">Catatan</p>
-          <p className="line-clamp-2 whitespace-pre-line text-[13px] leading-[1.5] text-white">
-            {values.notes?.trim() || "—"}
+          <p className="mb-[6px] text-[13px] font-bold text-white">
+            {projectName ? "Nama Proyek" : "Catatan"}
           </p>
+          <p className="line-clamp-1 text-[13px] leading-[1.5] text-white">
+            {projectName || notes || "—"}
+          </p>
+          {projectName && notes && (
+            <p className="line-clamp-2 whitespace-pre-line text-[13px] leading-[1.5] text-white/85">{notes}</p>
+          )}
         </div>
 
         {/* Dari / Ditagihkan kepada */}

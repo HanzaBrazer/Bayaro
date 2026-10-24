@@ -83,6 +83,7 @@ export async function createInvoice(values: InvoiceFormValues, asDraft: boolean)
       workspace_id: ws.id,
       user_id: user.id,
       client_id: values.clientId || null,
+      project_name: values.projectName.trim() || null,
       client_name: values.clientName.trim() || null,
       client_address: values.clientAddress.trim() || null,
       client_email: values.clientEmail.trim() || null,
@@ -135,6 +136,7 @@ export async function updateInvoice(
     .from("invoices")
     .update({
       client_id: values.clientId || null,
+      project_name: values.projectName.trim() || null,
       client_name: values.clientName.trim() || null,
       client_address: values.clientAddress.trim() || null,
       client_email: values.clientEmail.trim() || null,
@@ -226,6 +228,7 @@ export async function getInvoiceForEdit(id: string): Promise<InvoiceForEdit | nu
 
   const values: InvoiceFormValues = {
     clientId: inv.client_id ?? null,
+    projectName: inv.project_name ?? "",
     clientName: inv.client_name ?? "",
     clientAddress: inv.client_address ?? "",
     clientEmail: inv.client_email ?? "",

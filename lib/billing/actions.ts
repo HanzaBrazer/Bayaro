@@ -46,38 +46,44 @@ export async function getBilling(): Promise<BillingInfo> {
  * Dipakai getBilling() agar status sinkron walau webhook tak masuk. Idempotent.
  */
 async function reconcileLatestPending(userId: string): Promise<void> {
-  const admin = createAdminClient();
-  const { data: pendings } = await admin
-    .from("subscriptions")
-    .select("id,status,midtrans_order_id,created_at")
-    .eq("user_id", userId)
-    .eq("status", "pending")
-    .order("created_at", { ascending: false })
-    .limit(5);
-  if (!pendings || pendings.length === 0) return;
+  // Best-effort: JANGAN sampai melempar error ke render halaman. Jika env admin
+  // atau Midtrans tak tersedia, lewati saja (webhook tetap jadi cadangan).
+  try {
+    const admin = createAdminClient();
+    const { data: pendings } = await admin
+      .from("subscriptions")
+      .select("id,status,midtrans_order_id,created_at")
+      .eq("user_id", userId)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(5);
+    if (!pendings || pendings.length === 0) return;
 
-  for (const sub of pendings) {
-    if (!sub.midtrans_order_id) continue;
-    const st = await getTransactionStatus(sub.midtrans_order_id as string);
-    const paid =
-      (st.transactionStatus === "settlement" || st.transactionStatus === "capture") &&
-      (st.fraudStatus === undefined || st.fraudStatus === "accept");
+    for (const sub of pendings) {
+      if (!sub.midtrans_order_id) continue;
+      const st = await getTransactionStatus(sub.midtrans_order_id as string);
+      const paid =
+        (st.transactionStatus === "settlement" || st.transactionStatus === "capture") &&
+        (st.fraudStatus === undefined || st.fraudStatus === "accept");
 
-    if (paid) {
-      const end = new Date();
-      end.setDate(end.getDate() + PRO_DAYS);
-      await admin
-        .from("subscriptions")
-        .update({ status: "active", current_period_end: end.toISOString(), updated_at: new Date().toISOString() })
-        .eq("id", sub.id);
-      return; // cukup satu yang aktif
+      if (paid) {
+        const end = new Date();
+        end.setDate(end.getDate() + PRO_DAYS);
+        await admin
+          .from("subscriptions")
+          .update({ status: "active", current_period_end: end.toISOString(), updated_at: new Date().toISOString() })
+          .eq("id", sub.id);
+        return; // cukup satu yang aktif
+      }
+      if (["deny", "cancel", "expire", "failure"].includes(st.transactionStatus)) {
+        await admin
+          .from("subscriptions")
+          .update({ status: "inactive", updated_at: new Date().toISOString() })
+          .eq("id", sub.id);
+      }
     }
-    if (["deny", "cancel", "expire", "failure"].includes(st.transactionStatus)) {
-      await admin
-        .from("subscriptions")
-        .update({ status: "inactive", updated_at: new Date().toISOString() })
-        .eq("id", sub.id);
-    }
+  } catch {
+    // diabaikan — status akan disinkronkan lewat webhook / percobaan berikutnya
   }
 }
 
@@ -138,23 +144,27 @@ export async function confirmUpgrade(orderId: string): Promise<{ plan: "free" | 
     (st.transactionStatus === "settlement" || st.transactionStatus === "capture") &&
     (st.fraudStatus === undefined || st.fraudStatus === "accept");
 
-  const admin = createAdminClient();
-  if (paid) {
-    if (sub.status !== "active") {
-      const end = new Date();
-      end.setDate(end.getDate() + PRO_DAYS);
-      await admin
-        .from("subscriptions")
-        .update({ status: "active", current_period_end: end.toISOString(), updated_at: new Date().toISOString() })
-        .eq("id", sub.id);
+  try {
+    const admin = createAdminClient();
+    if (paid) {
+      if (sub.status !== "active") {
+        const end = new Date();
+        end.setDate(end.getDate() + PRO_DAYS);
+        await admin
+          .from("subscriptions")
+          .update({ status: "active", current_period_end: end.toISOString(), updated_at: new Date().toISOString() })
+          .eq("id", sub.id);
+      }
+    } else if (["deny", "cancel", "expire", "failure"].includes(st.transactionStatus)) {
+      if (sub.status === "pending") {
+        await admin
+          .from("subscriptions")
+          .update({ status: "inactive", updated_at: new Date().toISOString() })
+          .eq("id", sub.id);
+      }
     }
-  } else if (["deny", "cancel", "expire", "failure"].includes(st.transactionStatus)) {
-    if (sub.status === "pending") {
-      await admin
-        .from("subscriptions")
-        .update({ status: "inactive", updated_at: new Date().toISOString() })
-        .eq("id", sub.id);
-    }
+  } catch {
+    return { plan: "free", status: st.transactionStatus, error: "Konfigurasi server belum lengkap (SERVICE_ROLE_KEY)." };
   }
 
   const plan = await getPlanFor(supabase, user.id);

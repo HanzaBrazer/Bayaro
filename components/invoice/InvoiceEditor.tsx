@@ -354,9 +354,15 @@ export function InvoiceEditor({
       <ClientDrawer
         open={clientDrawerOpen}
         onClose={() => setClientDrawerOpen(false)}
-        onSaved={(c) => {
-          setClientList((prev) => [...prev.filter((x) => x.id !== c.id), c].sort((a, b) => a.name.localeCompare(b.name)));
-          patch({ clientId: c.id, clientName: c.name, clientAddress: c.address ?? "" });
+        offerSaveToList
+        onSaved={(c, persisted) => {
+          if (persisted) {
+            setClientList((prev) => [...prev.filter((x) => x.id !== c.id), c].sort((a, b) => a.name.localeCompare(b.name)));
+            patch({ clientId: c.id, clientName: c.name, clientAddress: c.address ?? "" });
+          } else {
+            // Sekali pakai: tak masuk daftar klien, hanya snapshot di invoice ini.
+            patch({ clientId: null, clientName: c.name, clientAddress: c.address ?? "" });
+          }
         }}
       />
 

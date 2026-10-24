@@ -24,12 +24,12 @@ Bahasa UI: **Indonesia** · Mata uang: **IDR** · Timezone kuota: **Asia/Jakarta
 ## Instalasi
 
 ```bash
-# 1. Pasang dependensi
+# Pasang dependensi
 npm install
-
-# 2. Pasang browser Chromium untuk Playwright (dipakai render PDF/PNG)
-npx playwright install chromium
 ```
+
+> Unduh PDF/PNG dirender di sisi browser (html2canvas + jsPDF) — tidak perlu
+> Chromium/Playwright.
 
 ## Konfigurasi environment
 

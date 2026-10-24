@@ -13,11 +13,12 @@ export default async function PublicInvoicePage({
   searchParams,
 }: {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ print?: string }>;
+  searchParams: Promise<{ print?: string; dl?: string }>;
 }) {
   const { token } = await params;
-  const { print } = await searchParams;
+  const { print, dl } = await searchParams;
   const isPrint = print === "1";
+  const autoDownload = dl === "pdf" || dl === "png" ? dl : null;
 
   const admin = createAdminClient();
   const { data: inv } = await admin.from("invoices").select("*").eq("public_token", token).maybeSingle();
@@ -74,7 +75,7 @@ export default async function PublicInvoicePage({
   return (
     <main className="min-h-screen bg-canvas py-8">
       <div className="mx-auto max-w-[840px] px-4">
-        <PublicInvoiceActions token={token} number={values.number} />
+        <PublicInvoiceActions token={token} number={values.number} autoDownload={autoDownload} />
         <div className="mt-4 overflow-hidden rounded-card border border-line shadow-card">
           <Template workspace={workspace} values={values} totals={totals} watermark={watermark} />
         </div>

@@ -29,7 +29,10 @@ Rujuk file ini dengan `@docs/design.md` saat butuh detail bagian tertentu.
 - **Framework:** Next.js (App Router) + TypeScript.
 - **Styling:** Tailwind CSS dengan design tokens dari `design.md`.
 - **Database/Auth/Storage:** Supabase (PostgreSQL + Auth + Storage).
-- **Render PDF/PNG:** Playwright (headless Chromium) dari SATU template HTML/CSS.
+- **Render PDF/PNG:** di sisi browser (html2canvas + jsPDF) dari template HTML/CSS
+  yang sama — unduhan langsung tersimpan ke perangkat & kompatibel dengan Vercel.
+  (Sebelumnya Playwright server; diganti atas persetujuan karena Chromium serverless
+  gagal/limit di Vercel.)
 - **Pembayaran:** Midtrans Snap (Sandbox dulu) + webhook.
 - **Bahasa UI:** Indonesia. **Mata uang:** IDR. **Timezone kuota:** Asia/Jakarta (WIB).
 
@@ -39,7 +42,6 @@ Rujuk file ini dengan `@docs/design.md` saat butuh detail bagian tertentu.
 - Start (hasil build): `npm run start`
 - Lint: `npm run lint`
 - Typecheck: `npm run typecheck` (alias `tsc --noEmit`)
-- Install Chromium Playwright (sekali): `npx playwright install chromium`
 - (Jalankan `npm run lint` + `npm run typecheck` sebelum tiap commit.)
 
 ## Design tokens (ringkas — detail penuh di design.md §1)

@@ -295,10 +295,10 @@ export function InvoiceEditor({
                     const item = "flex w-full items-center gap-2.5 rounded-btn px-2.5 py-2 text-left text-sm text-ink transition-colors hover:bg-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
                     return (
                       <>
-                        <a href={`/api/i/${publicToken}/pdf`} target="_blank" rel="noopener" onClick={() => setTimeout(close, 0)} className={item}>
+                        <a href={`/i/${publicToken}?dl=pdf`} target="_blank" rel="noopener" onClick={() => setTimeout(close, 0)} className={item}>
                           <Download className="h-4 w-4" /> Unduh PDF
                         </a>
-                        <a href={`/api/i/${publicToken}/png`} target="_blank" rel="noopener" onClick={() => setTimeout(close, 0)} className={item}>
+                        <a href={`/i/${publicToken}?dl=png`} target="_blank" rel="noopener" onClick={() => setTimeout(close, 0)} className={item}>
                           <ImageIcon className="h-4 w-4" /> Unduh PNG
                         </a>
                         <button

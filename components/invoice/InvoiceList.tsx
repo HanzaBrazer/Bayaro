@@ -233,10 +233,10 @@ export function InvoiceList({ invoices, initialStatus = "all" }: { invoices: Inv
                           <Link href={`/invoices/${inv.id}/edit`} onClick={close} className={itemCls}>
                             <Pencil className="h-4 w-4" /> Edit
                           </Link>
-                          <a href={`/api/i/${inv.public_token}/pdf`} target="_blank" rel="noopener" onClick={() => setTimeout(close, 0)} className={itemCls}>
+                          <a href={`/i/${inv.public_token}?dl=pdf`} target="_blank" rel="noopener" onClick={() => setTimeout(close, 0)} className={itemCls}>
                             <Download className="h-4 w-4" /> Unduh PDF
                           </a>
-                          <a href={`/api/i/${inv.public_token}/png`} target="_blank" rel="noopener" onClick={() => setTimeout(close, 0)} className={itemCls}>
+                          <a href={`/i/${inv.public_token}?dl=png`} target="_blank" rel="noopener" onClick={() => setTimeout(close, 0)} className={itemCls}>
                             <ImageIcon className="h-4 w-4" /> Unduh PNG
                           </a>
                           <button

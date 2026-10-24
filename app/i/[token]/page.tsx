@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getPlanFor } from "@/lib/plan/quota";
 import { getTemplate } from "@/components/invoice/templates/registry";
 import { PublicInvoiceActions } from "@/components/invoice/PublicInvoiceActions";
+import { getPublicClaimStatus } from "@/lib/payment/actions";
 import type { InvoiceFormValues, WorkspaceInfo, ItemCategory } from "@/lib/invoice/types";
 import type { InvoiceTotals } from "@/lib/invoice/calc";
 
@@ -64,6 +65,7 @@ export default async function PublicInvoicePage({
   const workspace = (ws ?? {}) as WorkspaceInfo;
 
   // Watermark hanya untuk pemilik invoice ber-plan Free; Pro tanpa watermark.
+  const claimStatus = await getPublicClaimStatus(token);
   const ownerPlan = await getPlanFor(admin, inv.user_id as string);
   const watermark = ownerPlan === "free";
   const Template = getTemplate(values.templateId).component;
@@ -79,7 +81,14 @@ export default async function PublicInvoicePage({
   return (
     <main className="min-h-screen bg-canvas py-8">
       <div className="mx-auto max-w-[840px] px-4">
-        <PublicInvoiceActions token={token} number={values.number} autoDownload={autoDownload} />
+        <PublicInvoiceActions
+          token={token}
+          number={values.number}
+          total={totals.total}
+          isPaid={inv.status === "lunas"}
+          claimStatus={claimStatus}
+          autoDownload={autoDownload}
+        />
         <div className="mt-4 overflow-hidden rounded-card border border-line shadow-card">
           <Template workspace={workspace} values={values} totals={totals} watermark={watermark} />
         </div>

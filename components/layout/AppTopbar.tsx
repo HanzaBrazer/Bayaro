@@ -8,8 +8,17 @@ import { CommandSearch } from "./CommandSearch";
 import { NotificationsMenu } from "./NotificationsMenu";
 import { AccountMenu } from "./AccountMenu";
 import type { Brand } from "./WorkspaceSwitcher";
+import type { PendingProof } from "@/lib/payment/actions";
 
-export function AppTopbar({ quota, brand }: { quota?: QuotaStatus; brand?: Brand }) {
+export function AppTopbar({
+  quota,
+  brand,
+  pendingProofs,
+}: {
+  quota?: QuotaStatus;
+  brand?: Brand;
+  pendingProofs?: PendingProof[];
+}) {
   const pathname = usePathname();
   const title = titleForPath(pathname);
 
@@ -20,7 +29,7 @@ export function AppTopbar({ quota, brand }: { quota?: QuotaStatus; brand?: Brand
 
       <div className="ml-auto flex items-center gap-2">
         <CommandSearch />
-        <NotificationsMenu />
+        <NotificationsMenu pendingProofs={pendingProofs} />
         <AccountMenu />
       </div>
     </header>

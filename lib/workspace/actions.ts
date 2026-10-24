@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export type OnboardingState = { error: string | null; success?: boolean };
 
@@ -179,13 +180,17 @@ export async function uploadWorkspaceLogo(
 
   const ext = (file.name.split(".").pop() || "png").toLowerCase();
   const path = `${ws.id}/logo-${Date.now()}.${ext}`;
-  const { error: upErr } = await supabase.storage
+
+  // Pakai service role: kepemilikan workspace sudah diverifikasi di atas, dan
+  // ini kebal dari policy storage yang kurang pas. Error asli ikut dilaporkan.
+  const admin = createAdminClient();
+  const { error: upErr } = await admin.storage
     .from("workspace-logos")
     .upload(path, file, { upsert: true, contentType: file.type || undefined });
-  if (upErr) return { error: "Gagal mengunggah logo. Coba lagi." };
+  if (upErr) return { error: `Gagal mengunggah logo: ${upErr.message}` };
 
-  const logoUrl = supabase.storage.from("workspace-logos").getPublicUrl(path).data.publicUrl;
-  const { error: updErr } = await supabase.from("workspaces").update({ logo_url: logoUrl }).eq("id", ws.id);
+  const logoUrl = admin.storage.from("workspace-logos").getPublicUrl(path).data.publicUrl;
+  const { error: updErr } = await admin.from("workspaces").update({ logo_url: logoUrl }).eq("id", ws.id);
   if (updErr) return { error: "Gagal menyimpan logo." };
 
   return { error: null, logoUrl };
@@ -233,4 +238,34 @@ export async function skipOnboardingAction(): Promise<void> {
     await supabase.from("users").update({ onboarded: true }).eq("id", user.id);
   }
   redirect("/invoices");
+}
+
+/**
+ * Simpan URL logo setelah file diunggah LANGSUNG dari browser ke Supabase Storage.
+ * Menghindari batas body Server Action (file tak melewati server sama sekali).
+ * URL divalidasi harus berasal dari bucket publik kita.
+ */
+export async function setWorkspaceLogoUrl(url: string): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sesi berakhir. Masuk lagi." };
+
+  const base = `${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""}/storage/v1/object/public/workspace-logos/`;
+  if (!url || !base.startsWith("http") || !url.startsWith(base)) {
+    return { error: "URL logo tidak valid." };
+  }
+
+  const { data: ws } = await supabase
+    .from("workspaces")
+    .select("id")
+    .eq("owner_user_id", user.id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!ws?.id) return { error: "Workspace tidak ditemukan." };
+
+  const { error } = await supabase.from("workspaces").update({ logo_url: url }).eq("id", ws.id);
+  return { error: error ? "Gagal menyimpan logo." : null };
 }

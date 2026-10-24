@@ -1,10 +1,12 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { User, Hash, CreditCard } from "lucide-react";
 import { Card, CardContent, Input, Textarea, Button, FileUpload, useToast } from "@/components/ui";
 import { cn } from "@/lib/utils";
-import { saveWorkspaceProfile, saveNumbering, uploadWorkspaceLogo, type Workspace } from "@/lib/workspace/actions";
+import { saveWorkspaceProfile, saveNumbering, setWorkspaceLogoUrl, uploadWorkspaceLogo, type Workspace } from "@/lib/workspace/actions";
+import { createClient as createBrowserSupabase } from "@/lib/supabase/client";
 import { BillingPanel } from "./BillingPanel";
 import type { BillingInfo } from "@/lib/billing/constants";
 
@@ -30,6 +32,7 @@ export function SettingsTabs({
   initialTab?: Tab;
 }) {
   const toast = useToast();
+  const router = useRouter();
   const [tab, setTab] = React.useState<Tab>(initialTab);
 
   // Profil
@@ -71,16 +74,35 @@ export function SettingsTabs({
       });
       if (res.error) return toast.error("Gagal", res.error);
 
-      // Logo opsional: hanya diunggah bila user memilih file baru.
+      // Logo opsional: diunggah LANGSUNG dari browser ke Supabase Storage,
+      // supaya tidak kena batas body Server Action (file tak lewat server).
       if (logoFile) {
-        const fd = new FormData();
-        fd.append("logo", logoFile);
-        const up = await uploadWorkspaceLogo(fd);
-        if (up.error) return toast.error("Profil tersimpan, logo gagal", up.error);
-        if (up.logoUrl) setLogoUrl(up.logoUrl);
+        const ext = (logoFile.name.split(".").pop() || "png").toLowerCase();
+        const path = `${workspace.id}/logo-${Date.now()}.${ext}`;
+        const sb = createBrowserSupabase();
+        const { error: upErr } = await sb.storage
+          .from("workspace-logos")
+          .upload(path, logoFile, { upsert: true, contentType: logoFile.type || undefined });
+
+        let publicUrl: string | null = null;
+        if (upErr) {
+          // Cadangan: lewat server (service role) bila policy storage menolak.
+          const fd = new FormData();
+          fd.append("logo", logoFile);
+          const up = await uploadWorkspaceLogo(fd);
+          if (up.error || !up.logoUrl) return toast.error("Profil tersimpan, logo gagal", up.error ?? upErr.message);
+          publicUrl = up.logoUrl;
+        } else {
+          publicUrl = sb.storage.from("workspace-logos").getPublicUrl(path).data.publicUrl;
+          const saved = await setWorkspaceLogoUrl(publicUrl);
+          if (saved.error) return toast.error("Profil tersimpan, logo gagal", saved.error);
+        }
+
+        setLogoUrl(publicUrl);
         setLogoFile(null);
       }
       toast.success("Profil tersimpan");
+      router.refresh(); // segarkan logo/nama di sidebar
     } catch {
       toast.error("Gagal menyimpan", "Jaringan bermasalah. Coba lagi.");
     } finally {

@@ -128,6 +128,43 @@ export async function saveWorkspaceProfile(input: {
   return { error: error ? "Gagal menyimpan profil." : null };
 }
 
+/** Unggah / ganti logo usaha (Pengaturan > Profil). Opsional. */
+export async function uploadWorkspaceLogo(
+  formData: FormData
+): Promise<{ error: string | null; logoUrl?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sesi berakhir. Masuk lagi." };
+
+  const { data: ws } = await supabase
+    .from("workspaces")
+    .select("id")
+    .eq("owner_user_id", user.id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!ws?.id) return { error: "Workspace tidak ditemukan." };
+
+  const file = formData.get("logo");
+  if (!(file instanceof File) || file.size === 0) return { error: "File logo tidak valid." };
+  if (file.size > 2 * 1024 * 1024) return { error: "Ukuran logo maksimal 2 MB." };
+
+  const ext = (file.name.split(".").pop() || "png").toLowerCase();
+  const path = `${ws.id}/logo-${Date.now()}.${ext}`;
+  const { error: upErr } = await supabase.storage
+    .from("workspace-logos")
+    .upload(path, file, { upsert: true, contentType: file.type || undefined });
+  if (upErr) return { error: "Gagal mengunggah logo. Coba lagi." };
+
+  const logoUrl = supabase.storage.from("workspace-logos").getPublicUrl(path).data.publicUrl;
+  const { error: updErr } = await supabase.from("workspaces").update({ logo_url: logoUrl }).eq("id", ws.id);
+  if (updErr) return { error: "Gagal menyimpan logo." };
+
+  return { error: null, logoUrl };
+}
+
 /** Simpan penomoran invoice (Pengaturan > Penomoran). */
 export async function saveNumbering(input: {
   prefix: string;

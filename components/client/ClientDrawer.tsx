@@ -80,7 +80,7 @@ export function ClientDrawer({
             {error}
           </div>
         )}
-        <Input label="Nama" value={name} onChange={(e) => setName(e.target.value)} placeholder="mis. PT Maju Jaya" required />
+        <Input label="Nama" value={name} onChange={(e) => setName(e.target.value)} placeholder="mis. John Doe" required />
         <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@contoh.com" />
         <Input label="Telepon" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="08xxxxxxxxxx" />
         <Textarea label="Alamat" value={address} onChange={(e) => setAddress(e.target.value)} rows={2} placeholder="Alamat klien" />

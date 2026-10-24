@@ -2,9 +2,9 @@
 
 import * as React from "react";
 import { User, Hash, CreditCard } from "lucide-react";
-import { Card, CardContent, Input, Textarea, Button, useToast } from "@/components/ui";
+import { Card, CardContent, Input, Textarea, Button, FileUpload, useToast } from "@/components/ui";
 import { cn } from "@/lib/utils";
-import { saveWorkspaceProfile, saveNumbering, type Workspace } from "@/lib/workspace/actions";
+import { saveWorkspaceProfile, saveNumbering, uploadWorkspaceLogo, type Workspace } from "@/lib/workspace/actions";
 import { BillingPanel } from "./BillingPanel";
 import type { BillingInfo } from "@/lib/billing/constants";
 
@@ -36,6 +36,8 @@ export function SettingsTabs({
   const [name, setName] = React.useState(workspace.name ?? "");
   const [address, setAddress] = React.useState(workspace.address ?? "");
   const [bank, setBank] = React.useState(workspace.bank_account ?? "");
+  const [logoUrl, setLogoUrl] = React.useState<string | null>(workspace.logo_url ?? null);
+  const [logoFile, setLogoFile] = React.useState<File | null>(null);
   const [savingProfile, setSavingProfile] = React.useState(false);
 
   // Penomoran
@@ -46,8 +48,23 @@ export function SettingsTabs({
   async function saveProfile() {
     setSavingProfile(true);
     const res = await saveWorkspaceProfile({ name, address, bankAccount: bank });
+    if (res.error) {
+      setSavingProfile(false);
+      return toast.error("Gagal", res.error);
+    }
+    // Logo opsional: hanya diunggah bila user memilih file baru.
+    if (logoFile) {
+      const fd = new FormData();
+      fd.append("logo", logoFile);
+      const up = await uploadWorkspaceLogo(fd);
+      if (up.error) {
+        setSavingProfile(false);
+        return toast.error("Profil tersimpan, logo gagal", up.error);
+      }
+      if (up.logoUrl) setLogoUrl(up.logoUrl);
+      setLogoFile(null);
+    }
     setSavingProfile(false);
-    if (res.error) return toast.error("Gagal", res.error);
     toast.success("Profil tersimpan");
   }
   async function saveNo() {
@@ -80,13 +97,29 @@ export function SettingsTabs({
       {tab === "profil" && (
         <Card>
           <CardContent className="max-w-xl space-y-4">
-            <Input label="Nama usaha" value={name} onChange={(e) => setName(e.target.value)} required />
+            <Input label="Nama usaha" value={name} onChange={(e) => setName(e.target.value)} required helper="Tampil di invoice & sidebar. Boleh diubah kapan saja." />
+
+            <div className="space-y-1.5">
+              <span className="block text-[13px] font-medium text-ink">Logo usaha <span className="font-normal text-muted">(opsional)</span></span>
+              {logoUrl && !logoFile && (
+                <div className="flex items-center gap-3 rounded-input border border-line bg-surface p-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={logoUrl} alt="Logo usaha saat ini" className="h-12 w-12 rounded-btn border border-line object-contain" />
+                  <p className="text-sm text-muted">Logo saat ini. Unggah file baru untuk mengganti.</p>
+                </div>
+              )}
+              <FileUpload
+                helper="PNG, JPG, atau SVG · maks 2 MB. Biarkan kosong untuk mempertahankan logo saat ini."
+                maxSizeMB={2}
+                onFileSelect={setLogoFile}
+              />
+            </div>
+
             <Textarea label="Alamat" value={address} onChange={(e) => setAddress(e.target.value)} rows={2} />
             <Input label="No. rekening / bank" value={bank} onChange={(e) => setBank(e.target.value)} placeholder="mis. BCA 1234567890 a.n. Nama" />
             <div className="flex justify-end">
               <Button onClick={saveProfile} loading={savingProfile}>Simpan perubahan</Button>
             </div>
-            <p className="text-xs text-muted">Logo bisa diperbarui lewat halaman onboarding (akan ditambahkan di sini kemudian).</p>
           </CardContent>
         </Card>
       )}

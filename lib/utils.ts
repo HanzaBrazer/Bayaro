@@ -18,6 +18,28 @@ export function formatRupiah(amount: number | string): string {
 }
 
 /**
+ * Format angka rupiah ringkas untuk ruang sempit (kartu/sumbu grafik).
+ * mis. 6_006_000 -> "Rp 6,01 jt", 7_300_000_000 -> "Rp 7,3 m", 2e12 -> "Rp 2 t".
+ * Di bawah 1 juta memakai format penuh (mis. "Rp 950.000").
+ */
+export function formatCompactIDR(amount: number | string, withPrefix = true): string {
+  const numeric = typeof amount === "string" ? parseFloat(amount.replace(/[^0-9.-]+/g, "")) : amount;
+  if (isNaN(numeric)) return withPrefix ? "Rp 0" : "0";
+  const prefix = withPrefix ? "Rp " : "";
+  const sign = numeric < 0 ? "-" : "";
+  const n = Math.abs(numeric);
+  const short = (v: number, suffix: string) => {
+    // 2 angka penting di belakang koma, buang nol berlebih, pakai koma desimal.
+    const s = v.toFixed(2).replace(/\.?0+$/, "").replace(".", ",");
+    return `${sign}${prefix}${s} ${suffix}`;
+  };
+  if (n >= 1_000_000_000_000) return short(n / 1_000_000_000_000, "t");
+  if (n >= 1_000_000_000) return short(n / 1_000_000_000, "m");
+  if (n >= 1_000_000) return short(n / 1_000_000, "jt");
+  return `${sign}${prefix}${formatRupiah(n)}`;
+}
+
+/**
  * Format tanggal ke format lokal Indonesia (misal: "17 Okt 2026")
  */
 export function formatDateID(dateInput: Date | string): string {

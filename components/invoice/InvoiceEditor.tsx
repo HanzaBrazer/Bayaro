@@ -29,7 +29,8 @@ import {
   type WorkspaceInfo,
 } from "@/lib/invoice/types";
 import { formatRupiah } from "@/lib/utils";
-import { getTemplate, TEMPLATES } from "./templates/registry";
+import { getTemplate } from "./templates/registry";
+import { TemplatePicker } from "./TemplatePicker";
 import { ClientDrawer } from "@/components/client/ClientDrawer";
 import type { ClientRecord } from "@/lib/client/actions";
 
@@ -38,8 +39,6 @@ const CATEGORY_OPTIONS = (Object.keys(CATEGORY_LABEL) as ItemCategory[]).map((c)
   label: CATEGORY_LABEL[c],
   colorDot: CATEGORY_COLOR[c],
 }));
-
-const TEMPLATE_OPTIONS = TEMPLATES.map((t) => ({ value: t.id, label: t.name }));
 
 function toDate(s: string | null): Date | null {
   if (!s) return null;
@@ -168,7 +167,13 @@ export function InvoiceEditor({
         <div className={cn("space-y-4", tab !== "form" && "hidden lg:block")}>
           <Card className="space-y-4 p-5">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Select label="Template" options={TEMPLATE_OPTIONS} value={values.templateId} onChange={(v) => patch({ templateId: v })} />
+              <TemplatePicker
+                workspace={workspace}
+                values={values}
+                totals={totals}
+                value={values.templateId}
+                onChange={(v) => patch({ templateId: v })}
+              />
               <Input
                 label="Nomor invoice"
                 value={values.number}
@@ -192,11 +197,22 @@ export function InvoiceEditor({
               )}
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <DatePicker label="Tanggal terbit" value={toDate(values.issueDate)} onChange={(d) => patch({ issueDate: fromDate(d) })} />
+              <DatePicker
+                label="Tanggal terbit"
+                value={toDate(values.issueDate)}
+                onChange={(d) => {
+                  const issue = fromDate(d);
+                  // Jika jatuh tempo kini lebih awal dari tanggal terbit baru, kosongkan.
+                  const clearDue = values.dueDate && values.dueDate < issue;
+                  patch(clearDue ? { issueDate: issue, dueDate: null } : { issueDate: issue });
+                }}
+              />
               <DatePicker
                 label="Jatuh tempo"
                 value={toDate(values.dueDate)}
                 onChange={(d) => patch({ dueDate: fromDate(d) })}
+                minDate={toDate(values.issueDate)}
+                helper="Minimal sama dengan tanggal terbit."
                 quickButtons={[
                   { label: "+14 hari", days: 14 },
                   { label: "+30 hari", days: 30 },
@@ -279,10 +295,10 @@ export function InvoiceEditor({
                     const item = "flex w-full items-center gap-2.5 rounded-btn px-2.5 py-2 text-left text-sm text-ink transition-colors hover:bg-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
                     return (
                       <>
-                        <a href={`/api/i/${publicToken}/pdf`} target="_blank" rel="noopener" onClick={close} className={item}>
+                        <a href={`/api/i/${publicToken}/pdf`} target="_blank" rel="noopener" onClick={() => setTimeout(close, 0)} className={item}>
                           <Download className="h-4 w-4" /> Unduh PDF
                         </a>
-                        <a href={`/api/i/${publicToken}/png`} target="_blank" rel="noopener" onClick={close} className={item}>
+                        <a href={`/api/i/${publicToken}/png`} target="_blank" rel="noopener" onClick={() => setTimeout(close, 0)} className={item}>
                           <ImageIcon className="h-4 w-4" /> Unduh PNG
                         </a>
                         <button

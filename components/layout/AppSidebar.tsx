@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS, isActivePath } from "@/lib/nav";
 import { BayaroMark } from "@/components/brand/Logo";
-import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
+import { WorkspaceSwitcher, type Brand } from "./WorkspaceSwitcher";
 import { UpgradeCard } from "./UpgradeCard";
 import type { QuotaStatus } from "@/lib/plan/quota";
 
@@ -13,7 +13,7 @@ import type { QuotaStatus } from "@/lib/plan/quota";
  * Sidebar desktop (248px) / tablet collapse (72px ikon-only).
  * Mobile memakai MobileNav (drawer) di topbar.
  */
-export function AppSidebar({ quota }: { quota?: QuotaStatus }) {
+export function AppSidebar({ quota, brand }: { quota?: QuotaStatus; brand?: Brand }) {
   const pathname = usePathname();
 
   return (
@@ -35,10 +35,10 @@ export function AppSidebar({ quota }: { quota?: QuotaStatus }) {
       {/* Workspace switcher */}
       <div className="px-2 lg:px-3">
         <div className="hidden lg:block">
-          <WorkspaceSwitcher />
+          <WorkspaceSwitcher brand={brand} />
         </div>
         <div className="flex justify-center lg:hidden">
-          <WorkspaceSwitcher collapsed />
+          <WorkspaceSwitcher collapsed brand={brand} />
         </div>
       </div>
 

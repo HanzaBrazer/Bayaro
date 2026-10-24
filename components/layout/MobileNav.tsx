@@ -8,11 +8,11 @@ import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS, isActivePath } from "@/lib/nav";
 import { BayaroMark } from "@/components/brand/Logo";
-import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
+import { WorkspaceSwitcher, type Brand } from "./WorkspaceSwitcher";
 import { UpgradeCard } from "./UpgradeCard";
 import type { QuotaStatus } from "@/lib/plan/quota";
 
-export function MobileNav({ quota }: { quota?: QuotaStatus }) {
+export function MobileNav({ quota, brand }: { quota?: QuotaStatus; brand?: Brand }) {
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
   const [mounted, setMounted] = React.useState(false);
@@ -90,7 +90,7 @@ export function MobileNav({ quota }: { quota?: QuotaStatus }) {
               </div>
 
               <div className="px-3">
-                <WorkspaceSwitcher />
+                <WorkspaceSwitcher brand={brand} />
               </div>
 
               <nav className="mt-3 flex-1 space-y-1 px-3" aria-label="Navigasi utama">

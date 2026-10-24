@@ -21,6 +21,8 @@ export interface DatePickerProps {
   id?: string;
   className?: string;
   quickButtons?: DatePickerQuickButton[];
+  /** Tanggal paling awal yang bisa dipilih (inklusif). Sebelumnya dinonaktifkan. */
+  minDate?: Date | null;
 }
 
 const WEEKDAYS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
@@ -51,13 +53,24 @@ export function DatePicker({
   id,
   className,
   quickButtons,
+  minDate,
 }: DatePickerProps) {
   const reactId = React.useId();
   const fieldId = id ?? reactId;
   const [open, setOpen] = React.useState(false);
-  const [view, setView] = React.useState<Date>(() => value ?? new Date());
+  const [view, setView] = React.useState<Date>(() => value ?? minDate ?? new Date());
   const rootRef = React.useRef<HTMLDivElement>(null);
   const today = React.useMemo(() => new Date(), []);
+
+  // Normalisasi batas minimum ke awal hari (abaikan jam).
+  const minStart = React.useMemo(() => {
+    if (!minDate) return null;
+    return new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate());
+  }, [minDate]);
+  const isBeforeMin = React.useCallback(
+    (d: Date) => (minStart ? new Date(d.getFullYear(), d.getMonth(), d.getDate()) < minStart : false),
+    [minStart]
+  );
 
   React.useEffect(() => {
     if (open && value) setView(value);
@@ -89,12 +102,13 @@ export function DatePicker({
   ];
 
   const pick = (d: Date) => {
+    if (isBeforeMin(d)) return;
     onChange(d);
     setOpen(false);
   };
 
   const applyQuick = (days: number) => {
-    const base = new Date();
+    const base = minStart ? new Date(minStart) : new Date();
     base.setDate(base.getDate() + days);
     pick(base);
   };
@@ -117,6 +131,7 @@ export function DatePicker({
         type="date"
         id={`${fieldId}-native`}
         disabled={disabled}
+        min={minStart ? toISODate(minStart) : undefined}
         value={value ? toISODate(value) : ""}
         onChange={(e) => {
           const v = e.target.value;
@@ -152,8 +167,9 @@ export function DatePicker({
               <button
                 type="button"
                 aria-label="Bulan sebelumnya"
+                disabled={minStart ? new Date(year, month, 0) < minStart : false}
                 onClick={() => setView(new Date(year, month - 1, 1))}
-                className="flex h-8 w-8 items-center justify-center rounded-btn text-muted transition-colors hover:bg-canvas hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="flex h-8 w-8 items-center justify-center rounded-btn text-muted transition-colors hover:bg-canvas hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
@@ -180,18 +196,22 @@ export function DatePicker({
                 if (!d) return <div key={`e-${i}`} />;
                 const isSelected = sameDay(d, value);
                 const isToday = sameDay(d, today);
+                const disabledDay = isBeforeMin(d);
                 return (
                   <button
                     key={toISODate(d)}
                     type="button"
                     onClick={() => pick(d)}
+                    disabled={disabledDay}
                     aria-pressed={isSelected}
                     className={cn(
                       "flex h-9 items-center justify-center rounded-btn text-sm tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                      isSelected
+                      disabledDay
+                        ? "cursor-not-allowed text-muted/40"
+                        : isSelected
                         ? "bg-primary font-semibold text-surface hover:bg-primary-hover"
                         : "text-ink hover:bg-canvas",
-                      !isSelected && isToday && "ring-1 ring-inset ring-primary"
+                      !disabledDay && !isSelected && isToday && "ring-1 ring-inset ring-primary"
                     )}
                   >
                     {d.getDate()}

@@ -11,3 +11,9 @@ export const snapApiUrl = midtransConfig.isProduction
 export const snapJsUrl = midtransConfig.isProduction
   ? "https://app.midtrans.com/snap/snap.js"
   : "https://app.sandbox.midtrans.com/snap/snap.js";
+
+// Core API (cek status transaksi server-to-server). Dipakai untuk
+// konfirmasi pembayaran saat webhook belum/ tak sempat masuk (mis. localhost).
+export const coreApiUrl = midtransConfig.isProduction
+  ? "https://api.midtrans.com"
+  : "https://api.sandbox.midtrans.com";

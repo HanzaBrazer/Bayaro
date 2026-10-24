@@ -5,7 +5,7 @@ import Script from "next/script";
 import { useRouter } from "next/navigation";
 import { Crown, Sparkles } from "lucide-react";
 import { Card, CardHeader, CardTitle, Button, Badge, useToast } from "@/components/ui";
-import { createUpgradeOrder } from "@/lib/billing/actions";
+import { createUpgradeOrder, confirmUpgrade } from "@/lib/billing/actions";
 import type { BillingInfo } from "@/lib/billing/constants";
 import { formatRupiah, formatDateID } from "@/lib/utils";
 
@@ -42,10 +42,23 @@ export function BillingPanel({
   const [loading, setLoading] = React.useState(false);
   const isPro = billing.plan === "pro";
 
+  // Verifikasi status ke server (yang mengecek langsung ke Midtrans) lalu aktifkan Pro.
+  async function finalize(orderId: string) {
+    const res = await confirmUpgrade(orderId);
+    setLoading(false);
+    if (res.plan === "pro") {
+      toast.success("Pembayaran berhasil", "Paket Pro sudah aktif.");
+      router.refresh();
+    } else {
+      toast.info("Menunggu konfirmasi", "Status akan diperbarui otomatis setelah pembayaran terkonfirmasi.");
+      router.refresh();
+    }
+  }
+
   async function upgrade() {
     setLoading(true);
     const res = await createUpgradeOrder();
-    if (res.error || !res.token) {
+    if (res.error || !res.token || !res.orderId) {
       setLoading(false);
       return toast.error("Gagal memulai pembayaran", res.error ?? "Coba lagi.");
     }
@@ -53,16 +66,10 @@ export function BillingPanel({
       setLoading(false);
       return toast.error("Snap belum siap", "Muat ulang halaman lalu coba lagi.");
     }
+    const orderId = res.orderId;
     window.snap.pay(res.token, {
-      onSuccess: () => {
-        toast.success("Pembayaran diterima", "Pro aktif dalam beberapa detik.");
-        setLoading(false);
-        setTimeout(() => router.refresh(), 2500);
-      },
-      onPending: () => {
-        toast.info("Menunggu pembayaran", "Selesaikan pembayaranmu.");
-        setLoading(false);
-      },
+      onSuccess: () => finalize(orderId),
+      onPending: () => finalize(orderId),
       onError: () => {
         toast.error("Pembayaran gagal", "Silakan coba lagi.");
         setLoading(false);

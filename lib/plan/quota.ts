@@ -23,16 +23,20 @@ export function startOfTodayWIB(): string {
 }
 
 export async function getPlanFor(supabase: SupabaseClient, userId: string): Promise<Plan> {
+  // Pro aktif = ADA langganan pro berstatus active yang belum kedaluwarsa
+  // (bukan sekadar baris terakhir — order pending yang lebih baru tak membatalkan Pro).
   const { data } = await supabase
     .from("subscriptions")
-    .select("plan,status,current_period_end")
+    .select("current_period_end")
     .eq("user_id", userId)
-    .order("created_at", { ascending: false })
+    .eq("plan", "pro")
+    .eq("status", "active")
+    .order("current_period_end", { ascending: false })
     .limit(1)
     .maybeSingle();
   if (!data) return "free";
   const notExpired = !data.current_period_end || new Date(data.current_period_end as string) > new Date();
-  return data.plan === "pro" && data.status === "active" && notExpired ? "pro" : "free";
+  return notExpired ? "pro" : "free";
 }
 
 /** Jumlah invoice yang dibuat user hari ini (zona WIB) — real-time COUNT. */

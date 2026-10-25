@@ -6,6 +6,7 @@ import { getPlanFor } from "@/lib/plan/quota";
 import { getTemplate } from "@/components/invoice/templates/registry";
 import { PublicInvoiceActions } from "@/components/invoice/PublicInvoiceActions";
 import { getPublicClaimStatus, getPendingProofFor } from "@/lib/payment/actions";
+import { isEmailConfigured } from "@/lib/email/send";
 import type { InvoiceFormValues, WorkspaceInfo, ItemCategory } from "@/lib/invoice/types";
 import type { InvoiceTotals } from "@/lib/invoice/calc";
 
@@ -66,6 +67,20 @@ export default async function PublicInvoicePage({
   };
   const workspace = (ws ?? {}) as WorkspaceInfo;
 
+  // Kontak untuk tombol "Bagikan": pakai snapshot di invoice; bila kosong,
+  // ambil kontak terkini dari klien tertaut (invoice lama belum punya snapshot).
+  let shareEmail = values.clientEmail;
+  let sharePhone = values.clientPhone;
+  if ((!shareEmail || !sharePhone) && inv.client_id) {
+    const { data: linked } = await admin
+      .from("clients")
+      .select("email,phone")
+      .eq("id", inv.client_id)
+      .maybeSingle();
+    shareEmail = shareEmail || ((linked?.email as string) ?? "");
+    sharePhone = sharePhone || ((linked?.phone as string) ?? "");
+  }
+
   // Apakah yang membuka halaman ini pemilik invoice? (sesi login, bila ada)
   const sessionClient = await createServerClient();
   const {
@@ -112,10 +127,16 @@ export default async function PublicInvoicePage({
               number={values.number}
               invoiceId={inv.id as string}
               total={totals.total}
+              dueDate={values.dueDate}
               isPaid={inv.status === "lunas"}
               claimStatus={claimStatus}
               isOwner={isOwner}
               pendingProof={pendingProof}
+              businessName={workspace.name || "Usaha Saya"}
+              clientName={values.clientName}
+              clientEmail={shareEmail}
+              clientPhone={sharePhone}
+              emailEnabled={isEmailConfigured()}
               autoDownload={autoDownload}
             />
           </div>

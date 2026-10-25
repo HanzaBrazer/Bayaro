@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { BayaroMark } from "@/components/brand/Logo";
+import { Link2Off } from "lucide-react";
+import { listInvites } from "@/lib/share/actions";
 import { getPlanFor } from "@/lib/plan/quota";
 import { getTemplate } from "@/components/invoice/templates/registry";
 import { PublicInvoiceActions } from "@/components/invoice/PublicInvoiceActions";
@@ -87,7 +89,29 @@ export default async function PublicInvoicePage({
     data: { user },
   } = await sessionClient.auth.getUser();
   const isOwner = !!user && (ws as { owner_user_id?: string } | null)?.owner_user_id === user.id;
+
+  // Tautan dinonaktifkan: benar-benar tidak bisa dibuka siapa pun kecuali
+  // pemiliknya (agar ia masih bisa mengaktifkannya kembali).
+  const linkActive = (inv as { link_active?: boolean }).link_active !== false;
+  if (!linkActive && !isOwner) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-canvas px-4">
+        <div className="max-w-md rounded-card border border-line bg-surface p-8 text-center shadow-card">
+          <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-canvas text-muted">
+            <Link2Off className="h-5 w-5" />
+          </span>
+          <h1 className="text-lg font-semibold text-ink">Tautan tidak aktif</h1>
+          <p className="mt-1.5 text-sm text-muted">
+            Penerbit invoice menonaktifkan tautan ini. Hubungi pengirim untuk meminta
+            tautan baru.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
   const pendingProof = isOwner ? await getPendingProofFor(inv.id as string) : null;
+  const invites = isOwner ? await listInvites(inv.id as string) : [];
 
   // Watermark hanya untuk pemilik invoice ber-plan Free; Pro tanpa watermark.
   const claimStatus = await getPublicClaimStatus(token);
@@ -137,6 +161,8 @@ export default async function PublicInvoicePage({
               clientEmail={shareEmail}
               clientPhone={sharePhone}
               emailEnabled={isEmailConfigured()}
+              linkActive={linkActive}
+              invites={invites}
               autoDownload={autoDownload}
             />
           </div>

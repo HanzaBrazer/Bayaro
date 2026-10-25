@@ -22,6 +22,7 @@ import { PaymentClaimModal } from "./PaymentClaimModal";
 import { PaymentReviewModal } from "./PaymentReviewModal";
 import { ShareInvoiceModal } from "./ShareInvoiceModal";
 import type { PendingProof } from "@/lib/payment/actions";
+import type { InviteRow } from "@/lib/share/actions";
 
 type Claim = "none" | "pending" | "rejected";
 
@@ -84,6 +85,8 @@ export function PublicInvoiceActions({
   clientEmail,
   clientPhone,
   emailEnabled = false,
+  linkActive = true,
+  invites = [],
   autoDownload,
 }: {
   token: string;
@@ -100,6 +103,8 @@ export function PublicInvoiceActions({
   clientEmail: string;
   clientPhone: string;
   emailEnabled?: boolean;
+  linkActive?: boolean;
+  invites?: InviteRow[];
   autoDownload?: "pdf" | "png" | null;
 }) {
   const toast = useToast();
@@ -220,7 +225,7 @@ export function PublicInvoiceActions({
 
             <button type="button" onClick={() => setShareOpen(true)} className={ghost}>
               <Share2 className="h-4 w-4" />
-              Bagikan ke klien
+              Bagikan &amp; undang
             </button>
 
             <Link href={`/invoices/${invoiceId}/edit`} className={ghost}>
@@ -256,6 +261,8 @@ export function PublicInvoiceActions({
         clientPhone={clientPhone}
         totalFormatted={`Rp ${formatRupiah(total)}`}
         emailEnabled={emailEnabled}
+        linkActive={linkActive}
+        invites={invites}
       />
     </div>
   );

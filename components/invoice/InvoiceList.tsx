@@ -13,6 +13,7 @@ import {
   Link2,
   CheckCircle2,
   Trash2,
+  Receipt,
   FileText,
 } from "lucide-react";
 import {
@@ -26,6 +27,7 @@ import {
   SortableTH,
   TH,
   Pagination,
+  Badge,
   StatusBadge,
   Dropdown,
   Modal,
@@ -40,6 +42,8 @@ import {
 import { cn, formatRupiah, formatDateID } from "@/lib/utils";
 import { updateInvoiceStatus, deleteInvoice, type InvoiceRow } from "@/lib/invoice/actions";
 import { NewInvoiceButton } from "./NewInvoiceButton";
+import { PaymentReviewModal } from "./PaymentReviewModal";
+import type { PendingProof } from "@/lib/payment/actions";
 
 const STATUSES: { value: InvoiceStatus; label: string }[] = [
   { value: "draft", label: "Draft" },
@@ -58,7 +62,15 @@ const PAGE_SIZE = 10;
 
 type SortKey = "issue_date" | "total" | "number";
 
-export function InvoiceList({ invoices, initialStatus = "all" }: { invoices: InvoiceRow[]; initialStatus?: string }) {
+export function InvoiceList({
+  invoices,
+  initialStatus = "all",
+  pendingProofs = [],
+}: {
+  invoices: InvoiceRow[];
+  initialStatus?: string;
+  pendingProofs?: PendingProof[];
+}) {
   const router = useRouter();
   const toast = useToast();
   const [query, setQuery] = React.useState("");
@@ -67,6 +79,11 @@ export function InvoiceList({ invoices, initialStatus = "all" }: { invoices: Inv
   const [sort, setSort] = React.useState<{ key: SortKey; dir: "asc" | "desc" }>({ key: "issue_date", dir: "desc" });
   const [page, setPage] = React.useState(1);
   const [deleteTarget, setDeleteTarget] = React.useState<InvoiceRow | null>(null);
+  const [reviewProof, setReviewProof] = React.useState<PendingProof | null>(null);
+  const proofByInvoice = React.useMemo(
+    () => new Map(pendingProofs.map((p) => [p.invoiceId, p])),
+    [pendingProofs]
+  );
   const [busy, setBusy] = React.useState(false);
 
   const filtered = React.useMemo(() => {
@@ -199,6 +216,16 @@ export function InvoiceList({ invoices, initialStatus = "all" }: { invoices: Inv
                   <TD className="text-muted">{formatDateID(inv.issue_date)}</TD>
                   <TDNumber>Rp {formatRupiah(inv.total)}</TDNumber>
                   <TD onClick={(e) => e.stopPropagation()}>
+                    {proofByInvoice.has(inv.id) && (
+                      <button
+                        type="button"
+                        onClick={() => setReviewProof(proofByInvoice.get(inv.id) ?? null)}
+                        className="mb-1 block rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        title="Klien mengirim bukti pembayaran — klik untuk meninjau"
+                      >
+                        <Badge tone="amber">Menunggu konfirmasi</Badge>
+                      </button>
+                    )}
                     <Dropdown
                       portal
                       trigger={({ toggle }) => (
@@ -260,6 +287,18 @@ export function InvoiceList({ invoices, initialStatus = "all" }: { invoices: Inv
                           >
                             <Link2 className="h-4 w-4" /> Salin link
                           </button>
+                          {proofByInvoice.has(inv.id) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                close();
+                                setReviewProof(proofByInvoice.get(inv.id) ?? null);
+                              }}
+                              className={itemCls}
+                            >
+                              <Receipt className="h-4 w-4 text-warning" /> Tinjau pembayaran
+                            </button>
+                          )}
                           {inv.status !== "lunas" && (
                             <button
                               type="button"
@@ -294,6 +333,8 @@ export function InvoiceList({ invoices, initialStatus = "all" }: { invoices: Inv
         </Table>
         <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
       </Card>
+
+      <PaymentReviewModal proof={reviewProof} onClose={() => setReviewProof(null)} />
 
       <Modal
         open={deleteTarget !== null}

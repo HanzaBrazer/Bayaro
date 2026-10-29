@@ -9,15 +9,18 @@ import { NotificationsMenu } from "./NotificationsMenu";
 import { AccountMenu } from "./AccountMenu";
 import type { Brand } from "./WorkspaceSwitcher";
 import type { PendingProof } from "@/lib/payment/actions";
+import type { AccountProfile } from "@/lib/auth/profile";
 
 export function AppTopbar({
   quota,
   brand,
   pendingProofs,
+  account,
 }: {
   quota?: QuotaStatus;
   brand?: Brand;
   pendingProofs?: PendingProof[];
+  account?: AccountProfile | null;
 }) {
   const pathname = usePathname();
   const title = titleForPath(pathname);
@@ -30,7 +33,7 @@ export function AppTopbar({
       <div className="ml-auto flex items-center gap-2">
         <CommandSearch />
         <NotificationsMenu pendingProofs={pendingProofs} />
-        <AccountMenu />
+        <AccountMenu account={account} />
       </div>
     </header>
   );

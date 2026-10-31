@@ -80,6 +80,27 @@ export async function getCustomTemplate(id: string): Promise<CustomTemplateRecor
   };
 }
 
+/** Semua template kustom beserta layout-nya — untuk pemilih & pratinjau editor. */
+export async function listCustomTemplateRecords(): Promise<CustomTemplateRecord[]> {
+  const c = await ctx();
+  if ("error" in c) return [];
+  const { data, error } = await c.supabase
+    .from("custom_templates")
+    .select("id,name,layout,letterhead_url,letterhead_top,letterhead_bottom,updated_at")
+    .eq("workspace_id", c.workspaceId)
+    .order("updated_at", { ascending: false });
+  if (error) return [];
+  return (data ?? []).map((r: Record<string, unknown>) => ({
+    id: r.id as string,
+    name: r.name as string,
+    layout: safeLayout(r.layout),
+    letterheadUrl: (r.letterhead_url as string) ?? null,
+    letterheadTop: Number(r.letterhead_top) || 0,
+    letterheadBottom: Number(r.letterhead_bottom) || 0,
+    updatedAt: r.updated_at as string,
+  }));
+}
+
 /** Buat template baru dari salah satu titik awal. */
 export async function createCustomTemplate(
   starter: StarterKey

@@ -7,7 +7,7 @@ import { Plus, Pencil, Copy, Trash2, LayoutTemplate, ImageIcon } from "lucide-re
 import { Card, Button, Modal, Badge, EmptyState, useToast } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { CustomTemplate } from "@/components/invoice/templates/CustomTemplate";
-import { STARTERS, STARTER_KEYS, type StarterKey } from "@/lib/custom-template/schema";
+import { STARTERS, STARTER_KEYS, customTemplateId, type StarterKey } from "@/lib/custom-template/schema";
 import { SAMPLE_VALUES, SAMPLE_TOTALS } from "@/lib/custom-template/sample";
 import {
   createCustomTemplate,
@@ -15,6 +15,7 @@ import {
   countTemplateUsage,
   deleteCustomTemplate,
 } from "@/lib/custom-template/actions";
+import { setDefaultTemplate } from "@/lib/workspace/actions";
 import type { CustomTemplateSummary } from "@/lib/custom-template/types";
 import type { WorkspaceInfo } from "@/lib/invoice/types";
 
@@ -25,9 +26,11 @@ function updatedLabel(iso: string) {
 export function CustomTemplateList({
   workspace,
   templates,
+  defaultTemplateId,
 }: {
   workspace: WorkspaceInfo;
   templates: CustomTemplateSummary[];
+  defaultTemplateId: string;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -49,6 +52,21 @@ export function CustomTemplateList({
       toast.error("Gagal membuat template", "Jaringan bermasalah. Coba lagi.");
     } finally {
       setCreating(null);
+    }
+  }
+
+  async function makeDefault(t: CustomTemplateSummary) {
+    if (busyId) return;
+    setBusyId(t.id);
+    try {
+      const res = await setDefaultTemplate(customTemplateId(t.id));
+      if (res.error) return toast.error("Gagal", res.error);
+      toast.success("Template default diubah", `Invoice baru memakai "${t.name}".`);
+      router.refresh();
+    } catch {
+      toast.error("Gagal", "Jaringan bermasalah. Coba lagi.");
+    } finally {
+      setBusyId(null);
     }
   }
 
@@ -129,12 +147,25 @@ export function CustomTemplateList({
                   <p className="truncate text-sm font-semibold text-ink" title={t.name}>{t.name}</p>
                   <p className="text-xs text-muted">Diubah {updatedLabel(t.updatedAt)}</p>
                 </div>
-                {t.hasLetterhead && (
-                  <Badge tone="neutral">
-                    <ImageIcon className="h-3 w-3" /> Kop surat
-                  </Badge>
-                )}
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  {customTemplateId(t.id) === defaultTemplateId && <Badge tone="green">Default</Badge>}
+                  {t.hasLetterhead && (
+                    <Badge tone="neutral">
+                      <ImageIcon className="h-3 w-3" /> Kop surat
+                    </Badge>
+                  )}
+                </div>
               </div>
+              {customTemplateId(t.id) !== defaultTemplateId && (
+                <button
+                  type="button"
+                  onClick={() => makeDefault(t)}
+                  disabled={busyId !== null}
+                  className="self-start text-xs font-medium text-primary transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+                >
+                  Jadikan default
+                </button>
+              )}
               <div className="mt-auto flex gap-2">
                 <Link
                   href={`/templates/custom/${t.id}`}

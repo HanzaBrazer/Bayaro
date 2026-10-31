@@ -14,7 +14,7 @@ export default async function TemplatesPage() {
   return (
     <div className="space-y-10">
       <TemplateGallery workspace={ws} defaultTemplateId={ws.default_template_id ?? "jasa"} />
-      <CustomTemplateList workspace={ws} templates={custom} />
+      <CustomTemplateList workspace={ws} templates={custom} defaultTemplateId={ws.default_template_id ?? "jasa"} />
     </div>
   );
 }

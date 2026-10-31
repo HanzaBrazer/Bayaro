@@ -1,4 +1,5 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { followRecordWorkspace } from "@/lib/workspace/active";
 import { getInvoiceForEdit } from "@/lib/invoice/actions";
 import { getClients } from "@/lib/client/actions";
 import { listCustomTemplateRecords } from "@/lib/custom-template/actions";
@@ -8,6 +9,8 @@ export const dynamic = "force-dynamic";
 
 export default async function EditInvoicePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  // Link dari workspace lain milik user → pindah dulu, lalu muat ulang.
+  if (await followRecordWorkspace("invoices", id)) redirect(`/invoices/${id}/edit`);
   const data = await getInvoiceForEdit(id);
   if (!data) notFound();
   const [clients, customTemplates] = await Promise.all([getClients(), listCustomTemplateRecords()]);

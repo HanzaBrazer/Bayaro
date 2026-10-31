@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getActiveWorkspaceId } from "@/lib/workspace/active";
 import { computeTotals, lineTotal } from "./calc";
 import { getPlanFor, countTodayInvoices, FREE_DAILY_LIMIT } from "@/lib/plan/quota";
 import type { InvoiceFormValues, WorkspaceInfo, ItemCategory, InvoiceItemInput } from "./types";
@@ -36,13 +37,10 @@ async function context() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Sesi berakhir. Masuk lagi." as string };
-  const { data: ws } = await supabase
-    .from("workspaces")
-    .select("*")
-    .eq("owner_user_id", user.id)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  const activeId = await getActiveWorkspaceId(supabase, user.id);
+  const { data: ws } = activeId
+    ? await supabase.from("workspaces").select("*").eq("id", activeId).maybeSingle()
+    : { data: null };
   if (!ws) return { error: "Workspace tidak ditemukan." as string };
   return { supabase, user, ws: ws as WorkspaceInfo };
 }

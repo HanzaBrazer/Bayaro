@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { followRecordWorkspace } from "@/lib/workspace/active";
 import { ArrowLeft, Mail, Phone, MapPin, FileText } from "lucide-react";
 import { getClientDetail } from "@/lib/client/actions";
 import {
@@ -23,6 +24,8 @@ export const dynamic = "force-dynamic";
 
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  // Link dari workspace lain milik user → pindah dulu, lalu muat ulang.
+  if (await followRecordWorkspace("clients", id)) redirect(`/clients/${id}`);
   const client = await getClientDetail(id);
   if (!client) notFound();
 

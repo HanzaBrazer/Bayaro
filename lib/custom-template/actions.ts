@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getActiveWorkspaceId } from "@/lib/workspace/active";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   STARTERS,
@@ -23,13 +24,10 @@ async function ctx() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Sesi berakhir. Masuk lagi." as string };
-  const { data: ws } = await supabase
-    .from("workspaces")
-    .select("id,default_template_id")
-    .eq("owner_user_id", user.id)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  const activeId = await getActiveWorkspaceId(supabase, user.id);
+  const { data: ws } = activeId
+    ? await supabase.from("workspaces").select("id,default_template_id").eq("id", activeId).maybeSingle()
+    : { data: null };
   if (!ws) return { error: "Workspace tidak ditemukan." as string };
   return { supabase, workspaceId: ws.id as string, defaultTemplateId: (ws.default_template_id as string) ?? "jasa" };
 }

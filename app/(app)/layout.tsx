@@ -1,20 +1,27 @@
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AppTopbar } from "@/components/layout/AppTopbar";
 import { getQuotaStatus } from "@/lib/plan/actions";
-import { getMyWorkspace } from "@/lib/workspace/actions";
+import { getMyWorkspace, listMyWorkspaces } from "@/lib/workspace/actions";
 import { listPendingProofs } from "@/lib/payment/actions";
 import { getAccountProfile } from "@/lib/auth/profile";
 
 export const dynamic = "force-dynamic";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const [quota, ws, pendingProofs, account] = await Promise.all([
+  const [quota, ws, pendingProofs, account, mine] = await Promise.all([
     getQuotaStatus(),
     getMyWorkspace(),
     listPendingProofs(),
     getAccountProfile(),
+    listMyWorkspaces(),
   ]);
-  const brand = { name: ws?.name?.trim() || "Usaha Saya", logoUrl: ws?.logo_url ?? null };
+  const brand = {
+    id: ws?.id ?? null,
+    name: ws?.name?.trim() || "Usaha Saya",
+    logoUrl: ws?.logo_url ?? null,
+    workspaces: mine.workspaces,
+    plan: quota?.plan,
+  };
 
   return (
     <div className="flex min-h-screen bg-canvas">

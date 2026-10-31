@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getActiveWorkspaceId } from "@/lib/workspace/active";
 import { getQuotaStatus } from "@/lib/plan/actions";
 import type { DashboardData, DashInvoice, DashItem } from "./types";
 
@@ -12,13 +13,8 @@ export async function getDashboardData(): Promise<DashboardData> {
   const empty: DashboardData = { invoices: [], items: [], quota: { plan: "free", used: 0, limit: 10, remaining: 10 } };
   if (!user) return empty;
 
-  const { data: ws } = await supabase
-    .from("workspaces")
-    .select("id")
-    .eq("owner_user_id", user.id)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  const activeId = await getActiveWorkspaceId(supabase, user.id);
+  const ws = activeId ? { id: activeId } : null;
   if (!ws) return empty;
 
   const { data: inv } = await supabase

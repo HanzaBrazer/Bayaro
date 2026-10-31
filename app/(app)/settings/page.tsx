@@ -16,7 +16,10 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const initialTab: Tab = tab === "penomoran" || tab === "billing" ? tab : "profil";
 
   return (
+    // key = id workspace: form dipasang ulang saat berpindah workspace,
+    // supaya isian workspace lama tidak tersimpan ke workspace baru.
     <SettingsTabs
+      key={ws.id}
       workspace={ws}
       billing={billing}
       snapJsUrl={snapJsUrl}

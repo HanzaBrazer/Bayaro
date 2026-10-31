@@ -1,10 +1,15 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getActiveWorkspaceId, setActiveWorkspaceId } from "./active";
+import { newWorkspaceSchema, templateForBusiness, type NewWorkspaceInput } from "./business";
 
 export type OnboardingState = { error: string | null; success?: boolean };
+
+export type WorkspaceSummary = { id: string; name: string; logoUrl: string | null };
 
 export type Workspace = {
   id: string;
@@ -27,23 +32,107 @@ export type Workspace = {
   terms: string | null;
 };
 
-/** Workspace milik user yang login (yang pertama / default). */
-export async function getMyWorkspace(): Promise<Workspace | null> {
+/** User + workspace aktif. Semua perubahan profil HANYA menyentuh workspace ini. */
+async function activeCtx() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return null;
+  if (!user) return { error: "Sesi berakhir. Masuk lagi." as string };
+  const workspaceId = await getActiveWorkspaceId(supabase, user.id);
+  if (!workspaceId) return { error: "Workspace tidak ditemukan." as string };
+  return { supabase, user, workspaceId };
+}
 
-  const { data } = await supabase
-    .from("workspaces")
-    .select("*")
-    .eq("owner_user_id", user.id)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-
+/** Workspace yang sedang aktif milik user yang login. */
+export async function getMyWorkspace(): Promise<Workspace | null> {
+  const c = await activeCtx();
+  if ("error" in c) return null;
+  const { data } = await c.supabase.from("workspaces").select("*").eq("id", c.workspaceId).maybeSingle();
   return (data as Workspace) ?? null;
+}
+
+/** Semua workspace milik user (untuk switcher), urut dari yang tertua. */
+export async function listMyWorkspaces(): Promise<{ activeId: string | null; workspaces: WorkspaceSummary[] }> {
+  const c = await activeCtx();
+  if ("error" in c) return { activeId: null, workspaces: [] };
+  const { data } = await c.supabase
+    .from("workspaces")
+    .select("id,name,logo_url")
+    .eq("owner_user_id", c.user.id)
+    .order("created_at", { ascending: true });
+  return {
+    activeId: c.workspaceId,
+    workspaces: (data ?? []).map((w: { id: string; name: string | null; logo_url: string | null }) => ({
+      id: w.id,
+      name: w.name?.trim() || "Usaha Saya",
+      logoUrl: w.logo_url ?? null,
+    })),
+  };
+}
+
+/**
+ * Buat workspace baru (bisnis lain) lalu jadikan aktif. Gratis untuk semua
+ * paket, tanpa batas jumlah — kuota invoice tetap dihitung per akun.
+ * Logo diunggah browser SETELAH workspace ada (butuh id untuk path-nya).
+ */
+export async function createWorkspace(
+  input: NewWorkspaceInput
+): Promise<{ error: string | null; id?: string; field?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sesi berakhir. Masuk lagi." };
+
+  const parsed = newWorkspaceSchema.safeParse(input);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    return { error: issue?.message ?? "Data belum lengkap.", field: issue?.path[0]?.toString() };
+  }
+  const v = parsed.data;
+
+  const { data, error } = await supabase
+    .from("workspaces")
+    .insert({
+      owner_user_id: user.id,
+      name: v.name,
+      address: v.address,
+      phone: v.phone,
+      email: v.email,
+      website: v.website,
+      bank_name: v.bankName,
+      account_number: v.accountNumber,
+      account_holder: v.accountHolder,
+      signatory: v.signatory,
+      invoice_prefix: v.prefix,
+      next_invoice_number: v.startNumber,
+      default_template_id: templateForBusiness(v.businessType),
+    })
+    .select("id")
+    .single();
+  if (error || !data) return { error: "Gagal membuat workspace. Coba lagi." };
+
+  const id = data.id as string;
+  if (!(await setActiveWorkspaceId(supabase, user.id, id))) {
+    // Workspace sudah dibuat; hanya gagal dijadikan aktif (mis. migrasi 0010 belum dijalankan).
+    return { error: "Workspace dibuat, tapi gagal dibuka otomatis. Pilih lewat menu workspace.", id };
+  }
+  revalidatePath("/", "layout");
+  return { error: null, id };
+}
+
+/** Pindah workspace aktif. Kepemilikan diverifikasi di server. */
+export async function switchWorkspace(workspaceId: string): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sesi berakhir. Masuk lagi." };
+  const ok = await setActiveWorkspaceId(supabase, user.id, workspaceId);
+  if (!ok) return { error: "Workspace tidak ditemukan." };
+  revalidatePath("/", "layout");
+  return { error: null };
 }
 
 export async function saveOnboardingAction(
@@ -65,16 +154,10 @@ export async function saveOnboardingAction(
 
   // Cari workspace user (dibuat trigger); buat bila belum ada.
   let workspaceId: string | null = null;
-  const { data: existing } = await supabase
-    .from("workspaces")
-    .select("id")
-    .eq("owner_user_id", user.id)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  const existing = await getActiveWorkspaceId(supabase, user.id);
 
-  if (existing?.id) {
-    workspaceId = existing.id as string;
+  if (existing) {
+    workspaceId = existing;
   } else {
     const { data: created, error: insErr } = await supabase
       .from("workspaces")
@@ -129,14 +212,11 @@ export async function saveWorkspaceProfile(input: {
   accountHolder?: string;
   terms?: string;
 }): Promise<{ error: string | null }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Sesi berakhir. Masuk lagi." };
+  const c = await activeCtx();
+  if ("error" in c) return { error: c.error ?? "Terjadi kesalahan." };
   if (!input.name.trim()) return { error: "Nama usaha wajib diisi." };
   const norm = (v?: string) => (v && v.trim() ? v.trim() : null);
-  const { error } = await supabase
+  const { error } = await c.supabase
     .from("workspaces")
     .update({
       name: input.name.trim(),
@@ -151,7 +231,7 @@ export async function saveWorkspaceProfile(input: {
       account_holder: norm(input.accountHolder),
       terms: norm(input.terms),
     })
-    .eq("owner_user_id", user.id);
+    .eq("id", c.workspaceId);
   return { error: error ? "Gagal menyimpan profil." : null };
 }
 
@@ -159,20 +239,9 @@ export async function saveWorkspaceProfile(input: {
 export async function uploadWorkspaceLogo(
   formData: FormData
 ): Promise<{ error: string | null; logoUrl?: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Sesi berakhir. Masuk lagi." };
-
-  const { data: ws } = await supabase
-    .from("workspaces")
-    .select("id")
-    .eq("owner_user_id", user.id)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-  if (!ws?.id) return { error: "Workspace tidak ditemukan." };
+  const c = await activeCtx();
+  if ("error" in c) return { error: c.error ?? "Terjadi kesalahan." };
+  const ws = { id: c.workspaceId };
 
   const file = formData.get("logo");
   if (!(file instanceof File) || file.size === 0) return { error: "File logo tidak valid." };
@@ -201,30 +270,24 @@ export async function saveNumbering(input: {
   prefix: string;
   nextNumber: number;
 }): Promise<{ error: string | null }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Sesi berakhir. Masuk lagi." };
+  const c = await activeCtx();
+  if ("error" in c) return { error: c.error ?? "Terjadi kesalahan." };
   const next = Math.max(1, Math.floor(input.nextNumber || 1));
-  const { error } = await supabase
+  const { error } = await c.supabase
     .from("workspaces")
     .update({ invoice_prefix: input.prefix.trim() || "INV-", next_invoice_number: next })
-    .eq("owner_user_id", user.id);
+    .eq("id", c.workspaceId);
   return { error: error ? "Gagal menyimpan penomoran." : null };
 }
 
 /** Jadikan template default workspace (dipakai untuk invoice baru). */
 export async function setDefaultTemplate(templateId: string): Promise<{ error: string | null }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Sesi berakhir. Masuk lagi." };
-  const { error } = await supabase
+  const c = await activeCtx();
+  if ("error" in c) return { error: c.error ?? "Terjadi kesalahan." };
+  const { error } = await c.supabase
     .from("workspaces")
     .update({ default_template_id: templateId })
-    .eq("owner_user_id", user.id);
+    .eq("id", c.workspaceId);
   return { error: error ? "Gagal mengubah template default." : null };
 }
 
@@ -246,26 +309,14 @@ export async function skipOnboardingAction(): Promise<void> {
  * URL divalidasi harus berasal dari bucket publik kita.
  */
 export async function setWorkspaceLogoUrl(url: string): Promise<{ error: string | null }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Sesi berakhir. Masuk lagi." };
+  const c = await activeCtx();
+  if ("error" in c) return { error: c.error ?? "Terjadi kesalahan." };
 
   const base = `${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""}/storage/v1/object/public/workspace-logos/`;
   if (!url || !base.startsWith("http") || !url.startsWith(base)) {
     return { error: "URL logo tidak valid." };
   }
 
-  const { data: ws } = await supabase
-    .from("workspaces")
-    .select("id")
-    .eq("owner_user_id", user.id)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-  if (!ws?.id) return { error: "Workspace tidak ditemukan." };
-
-  const { error } = await supabase.from("workspaces").update({ logo_url: url }).eq("id", ws.id);
+  const { error } = await c.supabase.from("workspaces").update({ logo_url: url }).eq("id", c.workspaceId);
   return { error: error ? "Gagal menyimpan logo." : null };
 }

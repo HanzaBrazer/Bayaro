@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getActiveWorkspaceId } from "@/lib/workspace/active";
 import type { SearchResults } from "./types";
 
 const EMPTY: SearchResults = { invoices: [], clients: [] };
@@ -26,13 +27,8 @@ export async function searchEverything(rawQuery: string): Promise<SearchResults>
   } = await supabase.auth.getUser();
   if (!user) return EMPTY;
 
-  const { data: ws } = await supabase
-    .from("workspaces")
-    .select("id")
-    .eq("owner_user_id", user.id)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  const activeId = await getActiveWorkspaceId(supabase, user.id);
+  const ws = activeId ? { id: activeId } : null;
   if (!ws?.id) return EMPTY;
 
   const like = `%${q}%`;

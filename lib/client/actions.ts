@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getActiveWorkspaceId } from "@/lib/workspace/active";
 
 export interface ClientRecord {
   id: string;
@@ -35,13 +36,8 @@ async function ctx() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Sesi berakhir. Masuk lagi." as string };
-  const { data: ws } = await supabase
-    .from("workspaces")
-    .select("id")
-    .eq("owner_user_id", user.id)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  const activeId = await getActiveWorkspaceId(supabase, user.id);
+  const ws = activeId ? { id: activeId } : null;
   if (!ws) return { error: "Workspace tidak ditemukan." as string };
   return { supabase, workspaceId: ws.id as string };
 }

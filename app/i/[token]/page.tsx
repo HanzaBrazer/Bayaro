@@ -10,7 +10,7 @@ import { isCustomTemplateId, CUSTOM_PREFIX, safeLayout } from "@/lib/custom-temp
 import type { CustomTemplateRecord } from "@/lib/custom-template/types";
 import { PublicInvoiceActions } from "@/components/invoice/PublicInvoiceActions";
 import { getPublicClaimStatus, getPendingProofFor } from "@/lib/payment/actions";
-import { isEmailConfigured } from "@/lib/email/send";
+import { isEmailConfigured, usingTestSender } from "@/lib/email/send";
 import type { InvoiceFormValues, WorkspaceInfo, ItemCategory } from "@/lib/invoice/types";
 import type { InvoiceTotals } from "@/lib/invoice/calc";
 
@@ -190,6 +190,7 @@ export default async function PublicInvoicePage({
               clientEmail={shareEmail}
               clientPhone={sharePhone}
               emailEnabled={isEmailConfigured()}
+              testSender={usingTestSender()}
               linkActive={linkActive}
               invites={invites}
               autoDownload={autoDownload}

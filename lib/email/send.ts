@@ -13,10 +13,18 @@ function fromAddress(): string {
   return process.env.EMAIL_FROM || "Bayaro <onboarding@resend.dev>";
 }
 
+/** Domain uji bersama Resend: hanya boleh kirim ke pemilik akun. */
+export function usingTestSender(): boolean {
+  const from = process.env.EMAIL_FROM?.trim();
+  return !from || /@resend\.dev>?\s*$/i.test(from);
+}
+
 export async function sendEmail(input: {
   to: string;
   subject: string;
   html: string;
+  /** Versi teks. Email HTML-saja lebih sering dinilai spam oleh Gmail. */
+  text?: string;
   replyTo?: string;
 }): Promise<{ error: string | null }> {
   const key = process.env.RESEND_API_KEY;
@@ -34,6 +42,7 @@ export async function sendEmail(input: {
         to: [input.to],
         subject: input.subject,
         html: input.html,
+        ...(input.text ? { text: input.text } : {}),
         ...(input.replyTo ? { reply_to: input.replyTo } : {}),
       }),
       signal: AbortSignal.timeout(10000),
@@ -99,6 +108,33 @@ export function invoiceEmailHtml(input: {
     </div>
   </div>
 </body></html>`;
+}
+
+/** Versi teks dari email invoice, dikirim berdampingan dengan HTML. */
+export function invoiceEmailText(input: {
+  businessName: string;
+  clientName: string;
+  number: string;
+  totalFormatted: string;
+  dueDateFormatted: string | null;
+  url: string;
+}): string {
+  const { businessName, clientName, number, totalFormatted, dueDateFormatted, url } = input;
+  return [
+    `Halo ${clientName || "Bapak/Ibu"},`,
+    ``,
+    `Berikut invoice ${number} dari ${businessName}.`,
+    ``,
+    `Total tagihan: ${totalFormatted}`,
+    ...(dueDateFormatted ? [`Jatuh tempo: ${dueDateFormatted}`] : []),
+    ``,
+    `Lihat & unduh invoice:`,
+    url,
+    ``,
+    `Sudah melakukan pembayaran? Buka tautan di atas lalu tekan "Saya sudah membayar" dan unggah bukti transfer.`,
+    ``,
+    `Dibuat dengan Bayaro`,
+  ].join("\n");
 }
 
 function escapeHtml(s: string): string {

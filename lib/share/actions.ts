@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { formatRupiah, formatDateID } from "@/lib/utils";
-import { sendEmail, invoiceEmailHtml, isEmailConfigured } from "@/lib/email/send";
+import { sendEmail, invoiceEmailHtml, invoiceEmailText, isEmailConfigured } from "@/lib/email/send";
 import { appUrl } from "@/lib/app-url";
 
 /** Kirim invoice ke email klien dari server (butuh RESEND_API_KEY). */
@@ -41,20 +41,25 @@ export async function sendInvoiceEmail(
     return { error: "Alamat aplikasi belum diatur di server. Isi NEXT_PUBLIC_APP_URL lalu redeploy." };
   }
 
-  const html = invoiceEmailHtml({
+  const content = {
     businessName: (ws?.name as string) || "Usaha Saya",
     clientName: (inv.client_name as string) || "",
     number: (inv.number as string) || "",
     totalFormatted: `Rp ${formatRupiah(Number(inv.total) || 0)}`,
     dueDateFormatted: inv.due_date ? formatDateID(inv.due_date as string) : null,
     url: `${base}/i/${inv.public_token}`,
-  });
+  };
+
+  // Balasan klien diarahkan ke email usaha; bila kosong, ke email pemilik akun
+  // supaya email tidak pernah terkirim tanpa alamat balasan.
+  const replyTo = (ws?.email as string) || user.email || undefined;
 
   return sendEmail({
     to: address,
-    subject: `Invoice ${inv.number} dari ${(ws?.name as string) || "Bayaro"}`,
-    html,
-    replyTo: (ws?.email as string) || undefined,
+    subject: `Invoice ${inv.number} dari ${content.businessName}`,
+    html: invoiceEmailHtml(content),
+    text: invoiceEmailText(content),
+    replyTo,
   });
 }
 

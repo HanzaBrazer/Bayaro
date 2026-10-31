@@ -389,6 +389,32 @@ export function CustomTemplate({
         />
       )}
 
+      {editing && letterhead && (
+        // Garis bantu area aman: hanya di builder, tidak ikut terekspor.
+        <div aria-hidden className="pointer-events-none absolute inset-0 z-20">
+          {letterhead.top > 0 && (
+            <div
+              className="absolute left-0 right-0 top-0 border-b-2 border-dashed border-[#2E7D5B]"
+              style={{ height: letterhead.top, background: "rgba(46,125,91,0.06)" }}
+            >
+              <span className="absolute right-1 top-1 rounded bg-[#2E7D5B] px-1 text-[9px] font-medium text-white">
+                Area kop atas {letterhead.top}px
+              </span>
+            </div>
+          )}
+          {letterhead.bottom > 0 && (
+            <div
+              className="absolute bottom-0 left-0 right-0 border-t-2 border-dashed border-[#2E7D5B]"
+              style={{ height: letterhead.bottom, background: "rgba(46,125,91,0.06)" }}
+            >
+              <span className="absolute bottom-1 right-1 rounded bg-[#2E7D5B] px-1 text-[9px] font-medium text-white">
+                Area kop bawah {letterhead.bottom}px
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
       {props.watermark && (
         <div aria-hidden className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
           <span className="rotate-[-30deg] select-none text-[90px] font-extrabold uppercase tracking-widest text-black/[0.05]">

@@ -1,5 +1,15 @@
 import type { Layout } from "./schema";
 
+export const LETTERHEAD_BUCKET = "letterheads";
+export const MAX_LETTERHEAD_BYTES = 5 * 1024 * 1024;
+
+/** Hanya terima URL publik dari bucket kop surat milik proyek ini. */
+export function isLetterheadUrl(url: string): boolean {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!base || !url) return false;
+  return url.startsWith(`${base.replace(/\/$/, "")}/storage/v1/object/public/${LETTERHEAD_BUCKET}/`);
+}
+
 export interface CustomTemplateSummary {
   id: string;
   name: string;

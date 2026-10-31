@@ -66,9 +66,10 @@ import {
 } from "@/lib/custom-template/schema";
 import { saveCustomTemplate } from "@/lib/custom-template/actions";
 import { SAMPLE_TOTALS, SAMPLE_VALUES } from "@/lib/custom-template/sample";
-import type { CustomTemplateRecord } from "@/lib/custom-template/types";
+import type { CustomTemplateRecord, Letterhead } from "@/lib/custom-template/types";
 import type { WorkspaceInfo } from "@/lib/invoice/types";
 import { BlockInspector } from "./BlockInspector";
+import { LetterheadPanel } from "./LetterheadPanel";
 import { findBlock, useLayoutEditor, type LayoutEditor } from "./useLayoutEditor";
 
 const A4_W = 794;
@@ -358,6 +359,12 @@ export function TemplateBuilder({ template, workspace }: { template: CustomTempl
 
   const [name, setName] = React.useState(template.name);
   const [savedName, setSavedName] = React.useState(template.name);
+  const initialLetterhead: Letterhead | null = template.letterheadUrl
+    ? { url: template.letterheadUrl, top: template.letterheadTop, bottom: template.letterheadBottom }
+    : null;
+  // URL kop surat tersimpan saat diunggah; offset-nya ikut tombol Simpan.
+  const [letterhead, setLetterhead] = React.useState(initialLetterhead);
+  const [savedLetterhead, setSavedLetterhead] = React.useState(initialLetterhead);
   const [sel, setSel] = React.useState<Sel>(null);
   const [saving, setSaving] = React.useState(false);
   const [previewOpen, setPreviewOpen] = React.useState(false);
@@ -366,7 +373,8 @@ export function TemplateBuilder({ template, workspace }: { template: CustomTempl
   const [tab, setTab] = React.useState<"susun" | "pratinjau">("susun");
   const [active, setActive] = React.useState<{ kind: "block"; id: string } | { kind: "lib"; type: BlockType } | null>(null);
 
-  const dirty = editor.dirty || name !== savedName;
+  const dirty =
+    editor.dirty || name !== savedName || JSON.stringify(letterhead) !== JSON.stringify(savedLetterhead);
   const check = React.useMemo(() => parseLayout(layout), [layout]);
 
   // Lacak layout terbaru untuk handler seret (event bisa datang sebelum render ulang).
@@ -411,12 +419,13 @@ export function TemplateBuilder({ template, workspace }: { template: CustomTempl
       const res = await saveCustomTemplate(template.id, {
         name,
         layout,
-        letterheadTop: template.letterheadTop,
-        letterheadBottom: template.letterheadBottom,
+        letterheadTop: letterhead?.top ?? 0,
+        letterheadBottom: letterhead?.bottom ?? 0,
       });
       if (res.error) return toast.error("Gagal menyimpan", res.error);
       editor.markSaved(layout);
       setSavedName(name);
+      setSavedLetterhead(letterhead);
       toast.success("Template tersimpan");
       router.refresh();
     } catch {
@@ -424,7 +433,7 @@ export function TemplateBuilder({ template, workspace }: { template: CustomTempl
     } finally {
       setSaving(false);
     }
-  }, [saving, check, name, template, layout, editor, toast, router]);
+  }, [saving, check, name, template, layout, letterhead, editor, toast, router]);
 
   /* --------------------------- pintasan keyboard --------------------------- */
 
@@ -570,7 +579,7 @@ export function TemplateBuilder({ template, workspace }: { template: CustomTempl
     <CustomTemplate
       docId={docId}
       layout={layout}
-      letterhead={template.letterheadUrl ? { url: template.letterheadUrl, top: template.letterheadTop, bottom: template.letterheadBottom } : null}
+      letterhead={letterhead}
       workspace={workspace}
       values={SAMPLE_VALUES}
       totals={SAMPLE_TOTALS}
@@ -617,6 +626,7 @@ export function TemplateBuilder({ template, workspace }: { template: CustomTempl
           onRemoved={() => setSel(null)}
         />
       )}
+      {!sel && <LetterheadPanel templateId={template.id} letterhead={letterhead} onChange={setLetterhead} />}
       {sel?.kind !== "row" && (
         <BlockInspector block={selectedBlock} settings={layout.settings} editor={editor} onDeselect={() => setSel(null)} />
       )}
@@ -820,7 +830,7 @@ export function TemplateBuilder({ template, workspace }: { template: CustomTempl
               </Button>
             </div>
             <div className="rounded-card border border-line bg-surface">
-              {sel ? inspector : <BlockInspector block={null} settings={layout.settings} editor={editor} onDeselect={() => setSel(null)} />}
+              {inspector}
             </div>
           </div>
         ) : (

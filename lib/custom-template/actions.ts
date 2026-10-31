@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   STARTERS,
   parseLayout,
@@ -8,7 +9,13 @@ import {
   customTemplateId,
   type StarterKey,
 } from "./schema";
-import type { CustomTemplateRecord, CustomTemplateSummary } from "./types";
+import {
+  LETTERHEAD_BUCKET,
+  MAX_LETTERHEAD_BYTES,
+  isLetterheadUrl,
+  type CustomTemplateRecord,
+  type CustomTemplateSummary,
+} from "./types";
 
 async function ctx() {
   const supabase = await createClient();
@@ -117,6 +124,73 @@ export async function saveCustomTemplate(
     .eq("id", id)
     .eq("workspace_id", c.workspaceId);
   return { error: error ? "Gagal menyimpan template." : null };
+}
+
+/** Catat URL kop surat yang sudah diunggah browser ke bucket "letterheads". */
+export async function setLetterheadUrl(id: string, url: string): Promise<{ error: string | null }> {
+  const c = await ctx();
+  if ("error" in c) return { error: c.error ?? "Terjadi kesalahan." };
+  if (!isLetterheadUrl(url)) return { error: "URL kop surat tidak valid." };
+
+  const { error } = await c.supabase
+    .from("custom_templates")
+    .update({ letterhead_url: url, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("workspace_id", c.workspaceId);
+  return { error: error ? "Gagal menyimpan kop surat." : null };
+}
+
+/**
+ * Cadangan bila unggahan langsung dari browser ditolak policy storage.
+ * Kepemilikan sudah diverifikasi di sini, lalu dipakai service role.
+ */
+export async function uploadLetterhead(
+  formData: FormData
+): Promise<{ error: string | null; url?: string }> {
+  const c = await ctx();
+  if ("error" in c) return { error: c.error ?? "Terjadi kesalahan." };
+
+  const id = String(formData.get("templateId") ?? "");
+  const { data: tpl } = await c.supabase
+    .from("custom_templates")
+    .select("id")
+    .eq("id", id)
+    .eq("workspace_id", c.workspaceId)
+    .maybeSingle();
+  if (!tpl) return { error: "Template tidak ditemukan." };
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) return { error: "Berkas kop surat tidak valid." };
+  if (file.size > MAX_LETTERHEAD_BYTES) return { error: "Ukuran berkas maksimal 5 MB." };
+  const ext = file.type === "image/jpeg" ? "jpg" : file.type === "image/png" ? "png" : null;
+  if (!ext) return { error: "Format harus PNG atau JPG (PDF diubah di browser)." };
+
+  const admin = createAdminClient();
+  const path = `${c.workspaceId}/${id}-${Date.now()}.${ext}`;
+  const { error: upErr } = await admin.storage
+    .from(LETTERHEAD_BUCKET)
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (upErr) return { error: `Gagal mengunggah kop surat: ${upErr.message}` };
+
+  const url = admin.storage.from(LETTERHEAD_BUCKET).getPublicUrl(path).data.publicUrl;
+  const { error } = await admin
+    .from("custom_templates")
+    .update({ letterhead_url: url, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("workspace_id", c.workspaceId);
+  return error ? { error: "Gagal menyimpan kop surat." } : { error: null, url };
+}
+
+/** Lepas kop surat dari template (berkas lama dibiarkan di storage). */
+export async function removeLetterhead(id: string): Promise<{ error: string | null }> {
+  const c = await ctx();
+  if ("error" in c) return { error: c.error ?? "Terjadi kesalahan." };
+  const { error } = await c.supabase
+    .from("custom_templates")
+    .update({ letterhead_url: null, letterhead_top: 0, letterhead_bottom: 0, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("workspace_id", c.workspaceId);
+  return { error: error ? "Gagal melepas kop surat." : null };
 }
 
 /** Duplikat template (termasuk kop suratnya). */

@@ -5,8 +5,11 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getActiveWorkspaceId, setActiveWorkspaceId } from "./active";
+import { newWorkspaceSchema, templateForBusiness, type NewWorkspaceInput } from "./business";
 
 export type OnboardingState = { error: string | null; success?: boolean };
+
+export type WorkspaceSummary = { id: string; name: string; logoUrl: string | null };
 
 export type Workspace = {
   id: string;
@@ -47,6 +50,76 @@ export async function getMyWorkspace(): Promise<Workspace | null> {
   if ("error" in c) return null;
   const { data } = await c.supabase.from("workspaces").select("*").eq("id", c.workspaceId).maybeSingle();
   return (data as Workspace) ?? null;
+}
+
+/** Semua workspace milik user (untuk switcher), urut dari yang tertua. */
+export async function listMyWorkspaces(): Promise<{ activeId: string | null; workspaces: WorkspaceSummary[] }> {
+  const c = await activeCtx();
+  if ("error" in c) return { activeId: null, workspaces: [] };
+  const { data } = await c.supabase
+    .from("workspaces")
+    .select("id,name,logo_url")
+    .eq("owner_user_id", c.user.id)
+    .order("created_at", { ascending: true });
+  return {
+    activeId: c.workspaceId,
+    workspaces: (data ?? []).map((w: { id: string; name: string | null; logo_url: string | null }) => ({
+      id: w.id,
+      name: w.name?.trim() || "Usaha Saya",
+      logoUrl: w.logo_url ?? null,
+    })),
+  };
+}
+
+/**
+ * Buat workspace baru (bisnis lain) lalu jadikan aktif. Gratis untuk semua
+ * paket, tanpa batas jumlah — kuota invoice tetap dihitung per akun.
+ * Logo diunggah browser SETELAH workspace ada (butuh id untuk path-nya).
+ */
+export async function createWorkspace(
+  input: NewWorkspaceInput
+): Promise<{ error: string | null; id?: string; field?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Sesi berakhir. Masuk lagi." };
+
+  const parsed = newWorkspaceSchema.safeParse(input);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    return { error: issue?.message ?? "Data belum lengkap.", field: issue?.path[0]?.toString() };
+  }
+  const v = parsed.data;
+
+  const { data, error } = await supabase
+    .from("workspaces")
+    .insert({
+      owner_user_id: user.id,
+      name: v.name,
+      address: v.address,
+      phone: v.phone,
+      email: v.email,
+      website: v.website,
+      bank_name: v.bankName,
+      account_number: v.accountNumber,
+      account_holder: v.accountHolder,
+      signatory: v.signatory,
+      invoice_prefix: v.prefix,
+      next_invoice_number: v.startNumber,
+      default_template_id: templateForBusiness(v.businessType),
+    })
+    .select("id")
+    .single();
+  if (error || !data) return { error: "Gagal membuat workspace. Coba lagi." };
+
+  const id = data.id as string;
+  if (!(await setActiveWorkspaceId(supabase, user.id, id))) {
+    // Workspace sudah dibuat; hanya gagal dijadikan aktif (mis. migrasi 0010 belum dijalankan).
+    return { error: "Workspace dibuat, tapi gagal dibuka otomatis. Pilih lewat menu workspace.", id };
+  }
+  revalidatePath("/", "layout");
+  return { error: null, id };
 }
 
 /** Pindah workspace aktif. Kepemilikan diverifikasi di server. */

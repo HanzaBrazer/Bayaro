@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
-const PROTECTED_PREFIXES = ["/dashboard", "/invoices", "/clients", "/templates", "/settings", "/onboarding"];
+const PROTECTED_PREFIXES = ["/dashboard", "/invoices", "/clients", "/templates", "/settings", "/onboarding", "/workspaces"];
 const AUTH_PAGES = ["/login", "/signup"];
 
 function matchesPrefix(pathname: string, prefixes: string[]): boolean {

@@ -208,7 +208,7 @@ export const STARTERS: Record<StarterKey, { name: string; description: string; l
     name: "Aksen emas",
     description: "Sentuhan emas, cocok untuk sewa & jasa premium.",
     layout: {
-      settings: { accentColor: "#C9A227", baseFontSize: 13, pageMargin: "L", numberStyle: "biasa", titleLabel: "TAGIHAN" },
+      settings: { accentColor: "#8A6D1F", baseFontSize: 13, pageMargin: "L", numberStyle: "biasa", titleLabel: "TAGIHAN" },
       rows: [
         row([[b("detail_invoice")], [b("logo", { size: "L", align: "right" })]]),
         row([[b("pemisah")]]),

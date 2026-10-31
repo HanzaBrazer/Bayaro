@@ -327,21 +327,37 @@ function BlockShell({ block, c, onSelect, selectedId }: {
   );
 }
 
+export type CustomTemplateHooks = {
+  /** Bungkus satu baris (mis. toolbar baris di builder). */
+  wrapRow?: (row: Layout["rows"][number], index: number, node: React.ReactNode) => React.ReactNode;
+  /** Isi satu sel (mis. area sortable/droppable di builder). */
+  wrapCell?: (args: { rowId: string; cellIndex: number; blockIds: string[]; children: React.ReactNode }) => React.ReactNode;
+  /** Bungkus satu blok (mis. item sortable + seleksi di builder). */
+  wrapBlock?: (block: Block, node: React.ReactNode) => React.ReactNode;
+};
+
 export function CustomTemplate({
   layout,
   letterhead,
   editing = false,
   selectedId = null,
   onSelect,
+  docId = "invoice-doc",
+  wrapRow,
+  wrapCell,
+  wrapBlock,
   ...props
-}: TemplateProps & {
-  layout: Layout;
-  letterhead?: Letterhead | null;
-  /** Mode builder: tampilkan placeholder untuk blok kosong & izinkan memilih blok. */
-  editing?: boolean;
-  selectedId?: string | null;
-  onSelect?: (id: string) => void;
-}) {
+}: TemplateProps &
+  CustomTemplateHooks & {
+    layout: Layout;
+    letterhead?: Letterhead | null;
+    /** Mode builder: tampilkan placeholder untuk blok kosong & izinkan memilih blok. */
+    editing?: boolean;
+    selectedId?: string | null;
+    onSelect?: (id: string) => void;
+    /** id elemen root. Ekspor PDF/PNG menangkap "invoice-doc"; pratinjau lain memakai id berbeda. */
+    docId?: string;
+  }) {
   const s = layout.settings;
   const margin = MARGIN[s.pageMargin];
   const padTop = letterhead ? Math.max(margin, letterhead.top) : margin;
@@ -350,7 +366,7 @@ export function CustomTemplate({
 
   return (
     <div
-      id="invoice-doc"
+      id={docId}
       className="relative mx-auto w-full overflow-hidden bg-white font-sans"
       style={{
         ...ON_LIGHT,
@@ -392,7 +408,7 @@ export function CustomTemplate({
               : row.background === "muted"
               ? { ...ON_LIGHT, background: "#F4F2EE" }
               : {};
-          return (
+          const rowNode = (
             <div
               key={row.id}
               className="grid gap-6"
@@ -411,15 +427,25 @@ export function CustomTemplate({
                   : {}),
               }}
             >
-              {row.cells.map((cell, ci) => (
-                <div key={ci} className="flex min-w-0 flex-col gap-3">
-                  {cell.map((block) => (
+              {row.cells.map((cell, ci) => {
+                const blocks = cell.map((block) =>
+                  wrapBlock ? (
+                    <React.Fragment key={block.id}>{wrapBlock(block, <BlockShell block={block} c={c} />)}</React.Fragment>
+                  ) : (
                     <BlockShell key={block.id} block={block} c={c} onSelect={onSelect} selectedId={selectedId} />
-                  ))}
-                </div>
-              ))}
+                  )
+                );
+                return (
+                  <div key={ci} className="flex min-w-0 flex-col gap-3">
+                    {wrapCell
+                      ? wrapCell({ rowId: row.id, cellIndex: ci, blockIds: cell.map((b) => b.id), children: blocks })
+                      : blocks}
+                  </div>
+                );
+              })}
             </div>
           );
+          return wrapRow ? <React.Fragment key={row.id}>{wrapRow(row, ri, rowNode)}</React.Fragment> : rowNode;
         })}
       </div>
     </div>

@@ -51,8 +51,11 @@ npm install
    | `MIDTRANS_SERVER_KEY` | Midtrans (Sandbox) → Settings → Access Keys → Server Key | **ya (server-only)** |
    | `NEXT_PUBLIC_MIDTRANS_CLIENT_KEY` | Midtrans (Sandbox) → Access Keys → Client Key | tidak |
    | `MIDTRANS_IS_PRODUCTION` | `false` saat Sandbox | — |
-   | `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` saat dev | — |
-   | `APP_TIMEZONE` | `Asia/Jakarta` | — |
+   | `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` saat dev; di Vercel isi domain produksi | — |
+   | `RESEND_API_KEY` | Resend → API Keys (opsional: kirim invoice lewat email) | **ya (server-only)** |
+   | `EMAIL_FROM` | Alamat pengirim, mis. `Bayaro <invoice@domainmu.com>` (opsional) | — |
+
+   Timezone kuota harian (WIB) sudah tetap di dalam kode, tidak perlu env.
 
    Untuk tahap fondasi, placeholder sudah cukup — app tetap jalan. Nilai Supabase
    dipakai mulai langkah Database & Auth; Midtrans mulai langkah Pembayaran.

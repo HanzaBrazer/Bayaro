@@ -20,7 +20,9 @@ const ENV_ITEMS: EnvItem[] = [
   { key: "NEXT_PUBLIC_MIDTRANS_CLIENT_KEY", label: "Midtrans client key", secret: false, requiredNow: false },
   { key: "MIDTRANS_IS_PRODUCTION", label: "Mode Midtrans (false = sandbox)", secret: false, requiredNow: true },
   { key: "NEXT_PUBLIC_APP_URL", label: "URL aplikasi", secret: false, requiredNow: true },
-  { key: "APP_TIMEZONE", label: "Timezone kuota (WIB)", secret: false, requiredNow: true },
+  // Opsional: tanpa ini tombol kirim email memakai aplikasi email pengguna (mailto:).
+  { key: "RESEND_API_KEY", label: "Resend API key (kirim email)", secret: true, requiredNow: false },
+  { key: "EMAIL_FROM", label: "Alamat pengirim email", secret: false, requiredNow: false },
 ];
 
 function isSet(v: string | undefined): boolean {

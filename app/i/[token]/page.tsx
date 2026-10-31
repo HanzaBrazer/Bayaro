@@ -5,7 +5,9 @@ import { BayaroMark } from "@/components/brand/Logo";
 import { Link2Off } from "lucide-react";
 import { listInvites } from "@/lib/share/actions";
 import { getPlanFor } from "@/lib/plan/quota";
-import { getTemplate } from "@/components/invoice/templates/registry";
+import { InvoiceDocument, toCustomMap } from "@/components/invoice/templates/InvoiceDocument";
+import { isCustomTemplateId, CUSTOM_PREFIX, safeLayout } from "@/lib/custom-template/schema";
+import type { CustomTemplateRecord } from "@/lib/custom-template/types";
 import { PublicInvoiceActions } from "@/components/invoice/PublicInvoiceActions";
 import { getPublicClaimStatus, getPendingProofFor } from "@/lib/payment/actions";
 import { isEmailConfigured } from "@/lib/email/send";
@@ -13,6 +15,28 @@ import type { InvoiceFormValues, WorkspaceInfo, ItemCategory } from "@/lib/invoi
 import type { InvoiceTotals } from "@/lib/invoice/calc";
 
 export const dynamic = "force-dynamic";
+
+/** Template kustom milik pemilik invoice; dibaca lewat service role agar bisa dilihat publik. */
+async function loadCustomTemplate(templateId: string): Promise<CustomTemplateRecord[]> {
+  if (!isCustomTemplateId(templateId)) return [];
+  const { data } = await createAdminClient()
+    .from("custom_templates")
+    .select("id,name,layout,letterhead_url,letterhead_top,letterhead_bottom,updated_at")
+    .eq("id", templateId.slice(CUSTOM_PREFIX.length))
+    .maybeSingle();
+  if (!data) return [];
+  return [
+    {
+      id: data.id as string,
+      name: data.name as string,
+      layout: safeLayout(data.layout),
+      letterheadUrl: (data.letterhead_url as string) ?? null,
+      letterheadTop: Number(data.letterhead_top) || 0,
+      letterheadBottom: Number(data.letterhead_bottom) || 0,
+      updatedAt: data.updated_at as string,
+    },
+  ];
+}
 
 export default async function PublicInvoicePage({
   params,
@@ -117,15 +141,20 @@ export default async function PublicInvoicePage({
   const claimStatus = await getPublicClaimStatus(token);
   const ownerPlan = await getPlanFor(admin, inv.user_id as string);
   const watermark = ownerPlan === "free";
-  const Template = getTemplate(values.templateId).component;
+  // Pengunjung bukan pemilik, jadi template kustomnya dibaca lewat service role.
+  const customs = toCustomMap(await loadCustomTemplate(values.templateId));
+  const doc = (
+    <InvoiceDocument
+      templateId={values.templateId}
+      customs={customs}
+      workspace={workspace}
+      values={values}
+      totals={totals}
+      watermark={watermark}
+    />
+  );
 
-  if (isPrint) {
-    return (
-      <div className="bg-white">
-        <Template workspace={workspace} values={values} totals={totals} watermark={watermark} />
-      </div>
-    );
-  }
+  if (isPrint) return <div className="bg-white">{doc}</div>;
 
   return (
     <main className="min-h-screen bg-canvas py-8">
@@ -171,7 +200,7 @@ export default async function PublicInvoicePage({
               saling tumpuk kalau kontainernya mengecil. */}
           <div className="overflow-x-auto rounded-card border border-line shadow-card lg:order-1">
             <div className="w-[794px]">
-              <Template workspace={workspace} values={values} totals={totals} watermark={watermark} />
+              {doc}
             </div>
           </div>
         </div>

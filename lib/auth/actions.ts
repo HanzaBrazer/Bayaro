@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { appUrl } from "@/lib/app-url";
 
 export type AuthState = { error: string | null; message?: string | null };
 
@@ -71,9 +72,9 @@ export async function forgotPasswordAction(_prev: AuthState, formData: FormData)
   if (!email) return { error: "Email wajib diisi." };
 
   const supabase = await createClient();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const base = appUrl() || "http://localhost:3000";
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${appUrl}/auth/callback?next=/reset-password`,
+    redirectTo: `${base}/auth/callback?next=/reset-password`,
   });
   if (error) return { error: "Gagal mengirim email reset. Coba lagi." };
 

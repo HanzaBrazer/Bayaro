@@ -3,10 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { formatRupiah, formatDateID } from "@/lib/utils";
 import { sendEmail, invoiceEmailHtml, isEmailConfigured } from "@/lib/email/send";
-
-function appUrl(): string {
-  return (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
-}
+import { appUrl } from "@/lib/app-url";
 
 /** Kirim invoice ke email klien dari server (butuh RESEND_API_KEY). */
 export async function sendInvoiceEmail(
@@ -40,7 +37,9 @@ export async function sendInvoiceEmail(
     .maybeSingle();
 
   const base = appUrl();
-  if (!base) return { error: "NEXT_PUBLIC_APP_URL belum diisi di server." };
+  if (!base) {
+    return { error: "Alamat aplikasi belum diatur di server. Isi NEXT_PUBLIC_APP_URL lalu redeploy." };
+  }
 
   const html = invoiceEmailHtml({
     businessName: (ws?.name as string) || "Usaha Saya",

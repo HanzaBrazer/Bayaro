@@ -79,7 +79,7 @@ export function ShareInvoiceModal({
   clientPhone,
   totalFormatted,
   emailEnabled,
-  testSender = false,
+  senderNotice = null,
   linkActive: initialLinkActive,
   invites: initialInvites,
 }: {
@@ -94,7 +94,7 @@ export function ShareInvoiceModal({
   clientPhone: string;
   totalFormatted: string;
   emailEnabled: boolean;
-  testSender?: boolean;
+  senderNotice?: string | null;
   linkActive: boolean;
   invites: InviteRow[];
 }) {
@@ -166,7 +166,7 @@ export function ShareInvoiceModal({
         toast.success(
           `Undangan terkirim ke ${res.sent.length} alamat`,
           // Email sering mendarat di Spam/Promosi saat memakai domain uji.
-          `${res.sent.join(", ")}${testSender ? " · Belum terlihat? Cek folder Spam atau tab Promosi." : ""}`
+          `${res.sent.join(", ")} · Belum terlihat? Cek folder Spam atau tab Promosi.`
         );
         const now = new Date().toISOString();
         setRows((prev) => {
@@ -291,12 +291,10 @@ export function ShareInvoiceModal({
             </p>
           )}
 
-          {emailEnabled && testSender && (
+          {emailEnabled && senderNotice && (
             <p className="flex items-start gap-1.5 text-xs text-muted">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              Pengirim masih memakai domain uji, jadi email hanya sampai ke alamat pemilik akun Resend
-              dan sering masuk folder Spam/Promosi. Verifikasi domain sendiri di Resend agar bisa
-              mengirim ke klien mana pun.
+              {senderNotice}
             </p>
           )}
 

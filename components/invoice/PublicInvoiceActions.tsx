@@ -85,7 +85,7 @@ export function PublicInvoiceActions({
   clientEmail,
   clientPhone,
   emailEnabled = false,
-  testSender = false,
+  senderNotice = null,
   linkActive = true,
   invites = [],
   autoDownload,
@@ -104,8 +104,8 @@ export function PublicInvoiceActions({
   clientEmail: string;
   clientPhone: string;
   emailEnabled?: boolean;
-  /** Pengirim masih domain uji Resend: hanya sampai ke pemilik akun. */
-  testSender?: boolean;
+  /** Catatan batasan pengiriman email, bila ada. */
+  senderNotice?: string | null;
   linkActive?: boolean;
   invites?: InviteRow[];
   autoDownload?: "pdf" | "png" | null;
@@ -264,7 +264,7 @@ export function PublicInvoiceActions({
         clientPhone={clientPhone}
         totalFormatted={`Rp ${formatRupiah(total)}`}
         emailEnabled={emailEnabled}
-        testSender={testSender}
+        senderNotice={senderNotice}
         linkActive={linkActive}
         invites={invites}
       />

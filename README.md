@@ -52,8 +52,9 @@ npm install
    | `NEXT_PUBLIC_MIDTRANS_CLIENT_KEY` | Midtrans (Sandbox) → Access Keys → Client Key | tidak |
    | `MIDTRANS_IS_PRODUCTION` | `false` saat Sandbox | — |
    | `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` saat dev; di Vercel isi domain produksi | — |
-   | `RESEND_API_KEY` | Resend → API Keys (opsional: kirim invoice lewat email) | **ya (server-only)** |
-   | `EMAIL_FROM` | Alamat pengirim, mis. `Bayaro <invoice@domainmu.com>` (opsional) | — |
+   | `BREVO_API_KEY` | Brevo → SMTP & API → API Keys (opsional: kirim invoice lewat email) | **ya (server-only)** |
+   | `RESEND_API_KEY` | Resend → API Keys (alternatif Brevo; butuh domain terverifikasi) | **ya (server-only)** |
+   | `EMAIL_FROM` | Alamat pengirim yang sudah diverifikasi di penyedia (opsional) | — |
 
    Timezone kuota harian (WIB) sudah tetap di dalam kode, tidak perlu env.
 

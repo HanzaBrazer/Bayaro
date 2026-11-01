@@ -1,22 +1,17 @@
 /**
- * Pengiriman email lewat REST API Resend — tanpa dependensi npm tambahan.
- * Aktif otomatis begitu RESEND_API_KEY diisi; bila kosong, UI memakai
- * fallback (membuka aplikasi email pengguna lewat mailto:).
+ * Pengiriman email transaksional — tanpa dependensi npm tambahan.
+ * Mendukung Brevo (butuh verifikasi per alamat) dan Resend (butuh domain
+ * terverifikasi); lihat lib/email/provider.ts. Bila tak satu pun dikonfigurasi,
+ * UI memakai fallback membuka aplikasi email pengguna lewat mailto:.
  */
 
+import { emailErrorMessage } from "./errors";
+import { emailProvider, sanitizeSenderName, senderAddress, senderNotice } from "./provider";
+
+export { senderNotice };
+
 export function isEmailConfigured(): boolean {
-  return !!process.env.RESEND_API_KEY;
-}
-
-/** Alamat pengirim. Tanpa domain terverifikasi, Resend hanya mengizinkan domain ujinya. */
-function fromAddress(): string {
-  return process.env.EMAIL_FROM || "Bayaro <onboarding@resend.dev>";
-}
-
-/** Domain uji bersama Resend: hanya boleh kirim ke pemilik akun. */
-export function usingTestSender(): boolean {
-  const from = process.env.EMAIL_FROM?.trim();
-  return !from || /@resend\.dev>?\s*$/i.test(from);
+  return emailProvider() !== null;
 }
 
 export async function sendEmail(input: {
@@ -26,36 +21,64 @@ export async function sendEmail(input: {
   /** Versi teks. Email HTML-saja lebih sering dinilai spam oleh Gmail. */
   text?: string;
   replyTo?: string;
+  /** Nama tampilan pengirim, mis. nama usaha. Alamatnya tetap dari EMAIL_FROM. */
+  fromName?: string;
 }): Promise<{ error: string | null }> {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) return { error: "Pengiriman email belum dikonfigurasi di server." };
+  const provider = emailProvider();
+  if (!provider) return { error: "Pengiriman email belum dikonfigurasi di server." };
+
+  const from = senderAddress(provider);
+  if (!from) {
+    return { error: "Alamat pengirim (EMAIL_FROM) belum diisi atau formatnya salah di server." };
+  }
+  const fromName = sanitizeSenderName(input.fromName ?? from.name);
 
   try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: fromAddress(),
-        to: [input.to],
-        subject: input.subject,
-        html: input.html,
-        ...(input.text ? { text: input.text } : {}),
-        ...(input.replyTo ? { reply_to: input.replyTo } : {}),
-      }),
-      signal: AbortSignal.timeout(10000),
-    });
+    const res =
+      provider === "brevo"
+        ? await fetch("https://api.brevo.com/v3/smtp/email", {
+            method: "POST",
+            headers: {
+              "api-key": process.env.BREVO_API_KEY!.trim(),
+              "Content-Type": "application/json",
+              accept: "application/json",
+            },
+            body: JSON.stringify({
+              sender: { email: from.email, name: fromName },
+              to: [{ email: input.to }],
+              subject: input.subject,
+              htmlContent: input.html,
+              ...(input.text ? { textContent: input.text } : {}),
+              ...(input.replyTo ? { replyTo: { email: input.replyTo } } : {}),
+            }),
+            signal: AbortSignal.timeout(10000),
+          })
+        : await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${process.env.RESEND_API_KEY!.trim()}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              from: `${fromName} <${from.email}>`,
+              to: [input.to],
+              subject: input.subject,
+              html: input.html,
+              ...(input.text ? { text: input.text } : {}),
+              ...(input.replyTo ? { reply_to: input.replyTo } : {}),
+            }),
+            signal: AbortSignal.timeout(10000),
+          });
 
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      // Pesan Resend cukup informatif (mis. domain belum terverifikasi).
-      return { error: (data as { message?: string }).message || `Gagal mengirim email (${res.status}).` };
+      const raw = await res.text().catch(() => "");
+      // Teks asli berbahasa Inggris & menyebut nama layanan: cukup di log.
+      console.error(`[email] ${provider} ${res.status}: ${raw.slice(0, 400)}`);
+      return { error: emailErrorMessage(provider, res.status, raw) };
     }
     return { error: null };
   } catch {
-    return { error: "Gagal menghubungi layanan email." };
+    return { error: "Gagal menghubungi layanan email. Coba lagi." };
   }
 }
 

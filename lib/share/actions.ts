@@ -60,6 +60,7 @@ export async function sendInvoiceEmail(
     html: invoiceEmailHtml(content),
     text: invoiceEmailText(content),
     replyTo,
+    fromName: content.businessName,
   });
 }
 

@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, ChevronsUpDown, Loader2, Plus, Settings } from "lucide-react";
-import { useToast } from "@/components/ui";
+import { useBusy, useToast } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { switchWorkspace, type WorkspaceSummary } from "@/lib/workspace/actions";
 
@@ -38,6 +38,7 @@ function Mark({ name, logoUrl, size = "md" }: { name: string; logoUrl: string | 
 export function WorkspaceSwitcher({ collapsed = false, brand }: { collapsed?: boolean; brand?: Brand }) {
   const router = useRouter();
   const toast = useToast();
+  const { runBusy } = useBusy();
   const name = brand?.name?.trim() || "Usaha Saya";
   const logoUrl = brand?.logoUrl ?? null;
   const all = brand?.workspaces ?? [];
@@ -95,7 +96,7 @@ export function WorkspaceSwitcher({ collapsed = false, brand }: { collapsed?: bo
     if (ws.id === brand?.id) return close();
     setSwitching(ws.id);
     try {
-      const res = await switchWorkspace(ws.id);
+      const res = await runBusy(`Beralih ke ${ws.name}…`, () => switchWorkspace(ws.id));
       if (res.error) return toast.error("Gagal berpindah", res.error);
       setOpen(false);
       toast.success(`Beralih ke ${ws.name}`);

@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, ImagePlus, X } from "lucide-react";
-import { Button, Input, Modal, Textarea, useToast } from "@/components/ui";
+import { Button, Input, Modal, Textarea, useBusy, useToast } from "@/components/ui";
 import { BayaroMark } from "@/components/brand/Logo";
 import { cn } from "@/lib/utils";
 import { createClient as createBrowserSupabase } from "@/lib/supabase/client";
@@ -54,6 +54,7 @@ const STEPS = [
 export function NewWorkspaceWizard({ hasWorkspaces }: { hasWorkspaces: boolean }) {
   const router = useRouter();
   const toast = useToast();
+  const { runBusy } = useBusy();
   const [step, setStep] = React.useState(0);
   const [form, setForm] = React.useState<Form>(EMPTY);
   const [errors, setErrors] = React.useState<Partial<Record<keyof Form, string>>>({});
@@ -160,11 +161,13 @@ export function NewWorkspaceWizard({ hasWorkspaces }: { hasWorkspaces: boolean }
     if (saving || !validate(step)) return;
     setSaving(true);
     try {
-      const res = await createWorkspace({
-        ...form,
-        businessType: form.businessType as BusinessTypeKey,
-        startNumber: Number(form.startNumber),
-      });
+      const res = await runBusy("Menyiapkan workspace…", () =>
+        createWorkspace({
+          ...form,
+          businessType: form.businessType as BusinessTypeKey,
+          startNumber: Number(form.startNumber),
+        })
+      );
       if (res.error && !res.id) {
         // Arahkan ke langkah tempat field bermasalah berada.
         const at: Record<string, number> = { businessType: 0, name: 1, email: 2, phone: 2, address: 2, website: 2 };
@@ -180,7 +183,7 @@ export function NewWorkspaceWizard({ hasWorkspaces }: { hasWorkspaces: boolean }
         router.refresh();
         return;
       }
-      const logoErr = res.id ? await uploadLogo(res.id) : null;
+      const logoErr = res.id ? await runBusy("Mengunggah logo…", () => uploadLogo(res.id!)) : null;
       if (logoErr) toast.info(`Workspace ${form.name.trim()} siap`, `Logo gagal diunggah: ${logoErr} Bisa diulang di Pengaturan.`);
       else toast.success(`Workspace ${form.name.trim()} siap`, "Mulai buat invoice pertamamu.");
       router.push("/dashboard");

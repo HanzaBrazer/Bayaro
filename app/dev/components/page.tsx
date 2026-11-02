@@ -15,6 +15,7 @@ import {
 import {
   Button,
   IconButton,
+  useBusy,
   Input,
   CurrencyInput,
   Textarea,
@@ -112,6 +113,8 @@ export default function ComponentsShowcasePage() {
   const [toggleA, setToggleA] = React.useState(true);
   const [toggleB, setToggleB] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
+  const { runBusy } = useBusy();
+  const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
   // overlay states
   const [modalOpen, setModalOpen] = React.useState(false);
@@ -192,9 +195,37 @@ export default function ComponentsShowcasePage() {
         </Row>
         <Row label="State">
           <Button disabled>Disabled</Button>
-          <Button loading>Loading</Button>
-          <Button onClick={simulateLoading} loading={loading}>
+          <Button loading>Simpan invoice</Button>
+          <Button loading leftIcon={<Download className="h-4 w-4" />}>
+            Unduh PDF
+          </Button>
+          <Button loading loadingText="Menyimpan…">
+            Simpan
+          </Button>
+          <Button onClick={simulateLoading} loading={loading} loadingText="Menyimpan…">
             Klik untuk loading
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={simulateLoading}
+            loading={loading}
+            leftIcon={<Download className="h-4 w-4" />}
+          >
+            Lebar tetap
+          </Button>
+        </Row>
+        <Row label="Overlay layar">
+          <Button
+            variant="secondary"
+            onClick={() => runBusy("Menyimpan invoice…", () => wait(2000))}
+          >
+            Aksi berat (2 detik)
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => runBusy("Harusnya tak terlihat…", () => wait(200))}
+          >
+            Aksi cepat (200ms — overlay tidak muncul)
           </Button>
         </Row>
         <Row label="Icon-only">

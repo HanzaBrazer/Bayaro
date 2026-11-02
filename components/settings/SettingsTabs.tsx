@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { User, Hash, CreditCard } from "lucide-react";
-import { Card, CardContent, Input, Textarea, Button, FileUpload, useToast } from "@/components/ui";
+import { Card, CardContent, Input, Textarea, Button, FileUpload, useBusy, useToast } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { saveWorkspaceProfile, saveNumbering, setWorkspaceLogoUrl, uploadWorkspaceLogo, type Workspace } from "@/lib/workspace/actions";
 import { createClient as createBrowserSupabase } from "@/lib/supabase/client";
@@ -32,6 +32,7 @@ export function SettingsTabs({
   initialTab?: Tab;
 }) {
   const toast = useToast();
+  const { runBusy } = useBusy();
   const router = useRouter();
   const [tab, setTab] = React.useState<Tab>(initialTab);
 
@@ -59,19 +60,21 @@ export function SettingsTabs({
     if (savingProfile) return;
     setSavingProfile(true);
     try {
-      const res = await saveWorkspaceProfile({
-        name,
-        address,
-        bankAccount: workspace.bank_account ?? "", // pertahankan data lama
-        phone,
-        email,
-        website,
-        signatory,
-        bankName,
-        accountNumber,
-        accountHolder,
-        terms,
-      });
+      const res = await runBusy(logoFile ? "Menyimpan profil & logo…" : "Menyimpan profil…", () =>
+        saveWorkspaceProfile({
+          name,
+          address,
+          bankAccount: workspace.bank_account ?? "", // pertahankan data lama
+          phone,
+          email,
+          website,
+          signatory,
+          bankName,
+          accountNumber,
+          accountHolder,
+          terms,
+        })
+      );
       if (res.error) return toast.error("Gagal", res.error);
 
       // Logo opsional: diunggah LANGSUNG dari browser ke Supabase Storage,

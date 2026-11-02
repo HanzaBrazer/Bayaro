@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
-import { ToastProvider } from "@/components/ui";
+import { BusyProvider, ToastProvider } from "@/components/ui";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-sans",
@@ -30,7 +30,9 @@ export default function RootLayout({
   return (
     <html lang="id" className={`${plusJakartaSans.variable} ${ibmPlexMono.variable}`}>
       <body className="min-h-screen bg-canvas text-ink antialiased">
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          <BusyProvider>{children}</BusyProvider>
+        </ToastProvider>
       </body>
     </html>
   );

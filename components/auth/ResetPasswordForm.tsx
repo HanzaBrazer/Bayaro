@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { AlertCircle } from "lucide-react";
 import { resetPasswordAction, type AuthState } from "@/lib/auth/actions";
 import { PasswordInput, Button } from "@/components/ui";
@@ -10,6 +10,14 @@ const initial: AuthState = { error: null };
 export function ResetPasswordForm() {
   const [state, action, pending] = useActionState(resetPasswordAction, initial);
   const [password, setPassword] = useState("");
+  const passwordRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (state.error && !pending) {
+      passwordRef.current?.focus();
+      passwordRef.current?.select();
+    }
+  }, [state, pending]);
 
   return (
     <div className="space-y-6">
@@ -19,7 +27,10 @@ export function ResetPasswordForm() {
       </div>
 
       {state.error && (
-        <div className="flex items-center gap-2 rounded-input border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger">
+        <div
+          role="alert"
+          className="flex items-center gap-2 rounded-input border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger"
+        >
           <AlertCircle className="h-4 w-4 shrink-0" />
           {state.error}
         </div>
@@ -27,8 +38,10 @@ export function ResetPasswordForm() {
 
       <form action={action} className="space-y-4">
         <PasswordInput
+          ref={passwordRef}
           label="Password baru"
           name="password"
+          aria-invalid={state.error ? true : undefined}
           placeholder="Minimal 8 karakter"
           required
           minLength={8}

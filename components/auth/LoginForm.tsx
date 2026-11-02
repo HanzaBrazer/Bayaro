@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AlertCircle } from "lucide-react";
 import { signInAction, type AuthState } from "@/lib/auth/actions";
@@ -11,6 +11,22 @@ const initial: AuthState = { error: null };
 
 export function LoginForm() {
   const [state, action, pending] = useActionState(signInAction, initial);
+  // Email ditahan di state klien: React mengosongkan form tak terkontrol
+  // setelah server action selesai, sehingga email ikut hilang tiap gagal masuk.
+  const [email, setEmail] = useState("");
+  const passwordRef = useRef<HTMLInputElement>(null);
+
+  // Password sengaja TIDAK dipertahankan — dikosongkan lalu difokuskan,
+  // karena itu yang perlu dibetulkan pengguna.
+  useEffect(() => {
+    if (state.error && !pending) {
+      const el = passwordRef.current;
+      if (el) {
+        el.value = "";
+        el.focus();
+      }
+    }
+  }, [state, pending]);
 
   return (
     <div className="space-y-6">
@@ -20,14 +36,27 @@ export function LoginForm() {
       </div>
 
       {state.error && (
-        <div className="flex items-center gap-2 rounded-input border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger">
+        <div
+          role="alert"
+          className="flex items-center gap-2 rounded-input border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger"
+        >
           <AlertCircle className="h-4 w-4 shrink-0" />
           {state.error}
         </div>
       )}
 
       <form action={action} className="space-y-4">
-        <Input label="Email" name="email" type="email" placeholder="nama@email.com" required autoComplete="email" />
+        <Input
+          label="Email"
+          name="email"
+          type="email"
+          placeholder="nama@email.com"
+          required
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          aria-invalid={state.error ? true : undefined}
+        />
 
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
@@ -38,7 +67,15 @@ export function LoginForm() {
               Lupa password?
             </Link>
           </div>
-          <PasswordInput id="login-password" name="password" placeholder="••••••••" required autoComplete="current-password" />
+          <PasswordInput
+            ref={passwordRef}
+            id="login-password"
+            name="password"
+            placeholder="••••••••"
+            required
+            autoComplete="current-password"
+            aria-invalid={state.error ? true : undefined}
+          />
         </div>
 
         <Checkbox name="remember" label="Ingat saya" defaultChecked />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { signUpAction, type AuthState } from "@/lib/auth/actions";
@@ -11,8 +11,21 @@ const initial: AuthState = { error: null };
 
 export function SignupForm() {
   const [state, action, pending] = useActionState(signUpAction, initial);
+  // Nama, email, dan centang ditahan di state klien supaya tidak hilang saat
+  // pendaftaran gagal (React mengosongkan form setelah server action).
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [agree, setAgree] = useState(false);
+  const passwordRef = useRef<HTMLInputElement>(null);
+
+  // Password dikosongkan lalu difokuskan; isian lain dipertahankan.
+  useEffect(() => {
+    if (state.error && !pending) {
+      setPassword("");
+      passwordRef.current?.focus();
+    }
+  }, [state, pending]);
 
   return (
     <div className="space-y-6">
@@ -22,7 +35,10 @@ export function SignupForm() {
       </div>
 
       {state.error && (
-        <div className="flex items-center gap-2 rounded-input border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger">
+        <div
+          role="alert"
+          className="flex items-center gap-2 rounded-input border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger"
+        >
           <AlertCircle className="h-4 w-4 shrink-0" />
           {state.error}
         </div>
@@ -35,11 +51,31 @@ export function SignupForm() {
       )}
 
       <form action={action} className="space-y-4">
-        <Input label="Nama lengkap" name="fullName" placeholder="Nama kamu" required autoComplete="name" />
-        <Input label="Email" name="email" type="email" placeholder="nama@email.com" required autoComplete="email" />
+        <Input
+          label="Nama lengkap"
+          name="fullName"
+          placeholder="Nama kamu"
+          required
+          autoComplete="name"
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+        />
+        <Input
+          label="Email"
+          name="email"
+          type="email"
+          placeholder="nama@email.com"
+          required
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          aria-invalid={state.error ? true : undefined}
+        />
         <PasswordInput
+          ref={passwordRef}
           label="Password"
           name="password"
+          aria-invalid={state.error ? true : undefined}
           placeholder="Minimal 8 karakter"
           required
           minLength={8}

@@ -16,6 +16,7 @@ import {
   Dropdown,
   PaywallModal,
   useToast,
+  useBusy,
 } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { computeTotals, lineTotal } from "@/lib/invoice/calc";
@@ -76,6 +77,7 @@ export function InvoiceEditor({
 }) {
   const router = useRouter();
   const toast = useToast();
+  const { runBusy } = useBusy();
   const [values, setValues] = React.useState<InvoiceFormValues>(initialValues);
   const [dirty, setDirty] = React.useState(false);
   const [saving, setSaving] = React.useState<null | "draft" | "final">(null);
@@ -119,9 +121,11 @@ export function InvoiceEditor({
     if (saving) return;
     setSaving(asDraft ? "draft" : "final");
     try {
-      const res = mode === "edit" && invoiceId
-        ? await updateInvoice(invoiceId, values, asDraft)
-        : await createInvoice(values, asDraft);
+      const res = await runBusy(asDraft ? "Menyimpan draft…" : "Menyimpan invoice…", () =>
+        mode === "edit" && invoiceId
+          ? updateInvoice(invoiceId, values, asDraft)
+          : createInvoice(values, asDraft)
+      );
       if (res.error) {
         if (res.quota) {
           setPaywallOpen(true);

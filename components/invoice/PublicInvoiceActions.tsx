@@ -15,7 +15,7 @@ import {
   ShieldCheck,
   CircleDashed,
 } from "lucide-react";
-import { useToast } from "@/components/ui";
+import { useBusy, useToast } from "@/components/ui";
 import { cn, formatRupiah, formatDateID } from "@/lib/utils";
 import { downloadInvoicePdf, downloadInvoicePng } from "@/lib/export/clientExport";
 import { PaymentClaimModal } from "./PaymentClaimModal";
@@ -111,6 +111,7 @@ export function PublicInvoiceActions({
   autoDownload?: "pdf" | "png" | null;
 }) {
   const toast = useToast();
+  const { runBusy } = useBusy();
   const [busy, setBusy] = React.useState<null | "pdf" | "png">(null);
   const [err, setErr] = React.useState<string | null>(null);
   const [claimOpen, setClaimOpen] = React.useState(false);
@@ -138,15 +139,16 @@ export function PublicInvoiceActions({
       }
       setBusy(kind);
       try {
-        if (kind === "pdf") await downloadInvoicePdf(el, safeName);
-        else await downloadInvoicePng(el, safeName);
+        await runBusy(`Menyiapkan ${kind.toUpperCase()}…`, () =>
+          kind === "pdf" ? downloadInvoicePdf(el, safeName) : downloadInvoicePng(el, safeName)
+        );
       } catch {
         setErr(`Gagal membuat ${kind.toUpperCase()}. Coba lagi.`);
       } finally {
         setBusy(null);
       }
     },
-    [safeName]
+    [safeName, runBusy]
   );
 
   // Auto-unduh saat dibuka via ?dl=pdf|png (dari daftar invoice / editor).

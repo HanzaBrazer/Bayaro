@@ -46,6 +46,8 @@ export type { DrawerProps } from "./Drawer";
 
 export { ToastProvider, useToast } from "./Toast";
 
+export { BusyProvider, useBusy } from "./BusyOverlay";
+
 export { EmptyState } from "./EmptyState";
 export type { EmptyStateProps } from "./EmptyState";
 

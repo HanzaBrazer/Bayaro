@@ -52,7 +52,7 @@ import {
   User,
   Wallet,
 } from "lucide-react";
-import { Button, Modal, useToast } from "@/components/ui";
+import { Button, Modal, useBusy, useToast } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { CustomTemplate } from "@/components/invoice/templates/CustomTemplate";
 import {
@@ -354,6 +354,7 @@ type Sel = { kind: "block"; id: string } | { kind: "row"; id: string } | null;
 export function TemplateBuilder({ template, workspace }: { template: CustomTemplateRecord; workspace: WorkspaceInfo }) {
   const router = useRouter();
   const toast = useToast();
+  const { runBusy } = useBusy();
   const editor = useLayoutEditor(template.layout);
   const { layout } = editor;
 
@@ -416,12 +417,14 @@ export function TemplateBuilder({ template, workspace }: { template: CustomTempl
     }
     setSaving(true);
     try {
-      const res = await saveCustomTemplate(template.id, {
-        name,
-        layout,
-        letterheadTop: letterhead?.top ?? 0,
-        letterheadBottom: letterhead?.bottom ?? 0,
-      });
+      const res = await runBusy("Menyimpan template…", () =>
+        saveCustomTemplate(template.id, {
+          name,
+          layout,
+          letterheadTop: letterhead?.top ?? 0,
+          letterheadBottom: letterhead?.bottom ?? 0,
+        })
+      );
       if (res.error) return toast.error("Gagal menyimpan", res.error);
       editor.markSaved(layout);
       setSavedName(name);
@@ -433,7 +436,7 @@ export function TemplateBuilder({ template, workspace }: { template: CustomTempl
     } finally {
       setSaving(false);
     }
-  }, [saving, check, name, template, layout, letterhead, editor, toast, router]);
+  }, [saving, check, name, template, layout, letterhead, editor, toast, router, runBusy]);
 
   /* --------------------------- pintasan keyboard --------------------------- */
 

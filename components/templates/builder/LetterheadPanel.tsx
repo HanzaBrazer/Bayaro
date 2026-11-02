@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { FileUp, Loader2, Trash2 } from "lucide-react";
-import { Button, Modal, useToast } from "@/components/ui";
+import { Button, Modal, useBusy, useToast } from "@/components/ui";
 import { createClient as createBrowserSupabase } from "@/lib/supabase/client";
 import { removeLetterhead, setLetterheadUrl, uploadLetterhead } from "@/lib/custom-template/actions";
 import { LETTERHEAD_ACCEPT, prepareLetterhead } from "@/lib/custom-template/letterhead";
@@ -57,6 +57,7 @@ export function LetterheadPanel({
   onChange: (next: Letterhead | null) => void;
 }) {
   const toast = useToast();
+  const { runBusy } = useBusy();
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [busy, setBusy] = React.useState(false);
   const [confirmOpen, setConfirmOpen] = React.useState(false);
@@ -68,15 +69,15 @@ export function LetterheadPanel({
 
     setBusy(true);
     try {
-      const prepared = await prepareLetterhead(file);
+      const prepared = await runBusy("Memproses kop surat…", () => prepareLetterhead(file));
       if (prepared.error !== null) return toast.error("Kop surat ditolak", prepared.error);
 
       const { blob, ext, contentType } = prepared.file;
       const path = `${templateId}-${Date.now()}.${ext}`;
       const sb = createBrowserSupabase();
-      const { error: upErr } = await sb.storage
-        .from(LETTERHEAD_BUCKET)
-        .upload(path, blob, { upsert: true, contentType });
+      const { error: upErr } = await runBusy("Mengunggah kop surat…", () =>
+        sb.storage.from(LETTERHEAD_BUCKET).upload(path, blob, { upsert: true, contentType })
+      );
 
       let url: string;
       if (upErr) {

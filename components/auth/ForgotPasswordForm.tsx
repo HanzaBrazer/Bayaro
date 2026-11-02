@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { AlertCircle, CheckCircle2, ArrowLeft } from "lucide-react";
 import { forgotPasswordAction, type AuthState } from "@/lib/auth/actions";
@@ -10,6 +10,8 @@ const initial: AuthState = { error: null };
 
 export function ForgotPasswordForm() {
   const [state, action, pending] = useActionState(forgotPasswordAction, initial);
+  // Email ditahan agar tidak perlu diketik ulang saat pengiriman gagal.
+  const [email, setEmail] = useState("");
 
   return (
     <div className="space-y-6">
@@ -19,7 +21,10 @@ export function ForgotPasswordForm() {
       </div>
 
       {state.error && (
-        <div className="flex items-center gap-2 rounded-input border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger">
+        <div
+          role="alert"
+          className="flex items-center gap-2 rounded-input border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger"
+        >
           <AlertCircle className="h-4 w-4 shrink-0" />
           {state.error}
         </div>
@@ -32,7 +37,17 @@ export function ForgotPasswordForm() {
       )}
 
       <form action={action} className="space-y-4">
-        <Input label="Email" name="email" type="email" placeholder="nama@email.com" required autoComplete="email" />
+        <Input
+          label="Email"
+          name="email"
+          type="email"
+          placeholder="nama@email.com"
+          required
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          aria-invalid={state.error ? true : undefined}
+        />
         <Button type="submit" loading={pending} className="w-full">
           Kirim tautan reset
         </Button>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle } from "lucide-react";
 import { saveOnboardingAction, skipOnboardingAction, type OnboardingState, type Workspace } from "@/lib/workspace/actions";
@@ -21,12 +21,18 @@ export function OnboardingForm({ workspace }: { workspace: Workspace | null }) {
   }, [state.success, router, toast]);
 
   // Nama default dari trigger "Usaha Saya" dibiarkan kosong agar user mengisi sendiri.
-  const defaultName = workspace?.name && workspace.name !== "Usaha Saya" ? workspace.name : "";
+  const [name, setName] = useState(workspace?.name && workspace.name !== "Usaha Saya" ? workspace.name : "");
+  const [address, setAddress] = useState(workspace?.address ?? "");
+  const [bankAccount, setBankAccount] = useState(workspace?.bank_account ?? "");
+  const [prefix, setPrefix] = useState(workspace?.invoice_prefix ?? "INV-");
 
   return (
     <form action={action} className="space-y-4">
       {state.error && (
-        <div className="flex items-center gap-2 rounded-input border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger">
+        <div
+          role="alert"
+          className="flex items-center gap-2 rounded-input border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger"
+        >
           <AlertCircle className="h-4 w-4 shrink-0" />
           {state.error}
         </div>
@@ -35,7 +41,8 @@ export function OnboardingForm({ workspace }: { workspace: Workspace | null }) {
       <Input
         label="Nama usaha"
         name="name"
-        defaultValue={defaultName}
+        value={name}
+        onChange={(e) => setName(e.target.value)}
         required
         placeholder="mis. Studio Gandaria"
         helper="Tampil di invoice & pengaturan."
@@ -46,21 +53,24 @@ export function OnboardingForm({ workspace }: { workspace: Workspace | null }) {
       <Textarea
         label="Alamat"
         name="address"
-        defaultValue={workspace?.address ?? ""}
+        value={address}
+        onChange={(e) => setAddress(e.target.value)}
         placeholder="Alamat usaha (blok pengirim pada invoice)"
       />
 
       <Input
         label="No. rekening / bank"
         name="bank_account"
-        defaultValue={workspace?.bank_account ?? ""}
+        value={bankAccount}
+        onChange={(e) => setBankAccount(e.target.value)}
         placeholder="mis. BCA 1234567890 a.n. Nama"
       />
 
       <Input
         label="Prefix nomor invoice"
         name="invoice_prefix"
-        defaultValue={workspace?.invoice_prefix ?? "INV-"}
+        value={prefix}
+        onChange={(e) => setPrefix(e.target.value)}
         placeholder="INV-"
         helper="Dipakai untuk penomoran, mis. INV-0001."
       />
